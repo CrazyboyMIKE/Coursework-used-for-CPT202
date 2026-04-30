@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Specialist Profile | Consultancy Booking Management Platform</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body">
+<div class="bg-orb orb-left"></div>
+<div class="bg-orb orb-right"></div>
+
+<header class="site-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">CB</span>
+        <span class="brand-copy">
+            <strong>ConsultBridge</strong>
+            <small>Consultancy Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav">
+        <a href="/dashboard.html">Workspace</a>
+        <a href="/register.html">Choose Registration</a>
+        <a class="button-link" href="/login.html">Sign In</a>
+    </nav>
+</header>
+
+<main class="landing-main">
+    <section class="section-block specialist-detail-shell">
+        <div class="section-heading">
+            <p class="eyebrow">Specialist Profile</p>
+            <h2 id="specialist-detail-title">Loading specialist profile...</h2>
+        </div>
+
+        <div class="detail-grid">
+            <article class="content-card detail-card">
+                <div class="detail-state" id="specialist-detail-state">Loading specialist details...</div>
+                <div class="meta-list hidden" id="specialist-detail-meta"></div>
+                <div class="notice-card hidden" id="specialist-detail-notice"></div>
+            </article>
+
+            <article class="content-card detail-card">
+                <h3>Available Time Slots</h3>
+                <p class="panel-note">Upcoming available time slots are listed below.</p>
+                <div class="slot-list" id="specialist-detail-slots"></div>
+            </article>
+        </div>
+    </section>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/specialist-detail.js"></script>
+</body>
+</html>

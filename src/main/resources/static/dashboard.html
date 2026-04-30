@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace | Consultancy Booking Management Platform</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body dashboard-body">
+<div class="bg-orb orb-left"></div>
+<div class="bg-orb orb-right"></div>
+
+<header class="dashboard-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">CB</span>
+        <span class="brand-copy">
+            <strong>ConsultBridge</strong>
+            <small>Consultancy Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav dashboard-nav">
+        <a href="/">Project Home</a>
+        <a href="/register.html">Choose Registration</a>
+        <a href="/admin.html">Admin Portal</a>
+    </nav>
+
+    <div class="account-panel">
+        <div class="account-meta">
+            <span class="muted-label">Signed In As</span>
+            <strong id="header-full-name">-</strong>
+        </div>
+        <span class="role-pill" id="header-role">-</span>
+        <button id="logout-button" class="ghost-button" type="button">Sign Out</button>
+    </div>
+</header>
+
+<main class="dashboard-main">
+    <section class="dashboard-banner">
+        <div class="banner-copy">
+            <p class="eyebrow">Operations Center</p>
+            <h1>Consultancy booking workspace</h1>
+            <p id="dashboard-subtitle">
+                Manage booking workflows, specialist schedules, and category configuration in one place.
+            </p>
+
+            <div class="anchor-strip">
+                <a href="#directory">Specialist Directory</a>
+                <a href="#profile-panel">Profile Settings</a>
+                <a id="anchor-customer" class="hidden" href="#customer-panel">Customer Workspace</a>
+                <a id="anchor-specialist" class="hidden" href="#specialist-panel">Specialist Workspace</a>
+                <a id="anchor-admin" class="hidden" href="#admin-panel">Admin Workspace</a>
+            </div>
+        </div>
+
+        <div class="banner-metrics">
+            <article class="metric-card metric-card-account">
+                <span>Account</span>
+                <strong id="profile-username" class="metric-value metric-value-identity">-</strong>
+            </article>
+            <article class="metric-card metric-card-email">
+                <span>Email</span>
+                <strong id="profile-email" class="metric-value metric-value-contact metric-value-mono">-</strong>
+            </article>
+            <article class="metric-card metric-card-phone">
+                <span>Phone</span>
+                <strong id="profile-phone" class="metric-value metric-value-contact metric-value-mono metric-value-numeric">-</strong>
+            </article>
+            <article class="metric-card metric-card-count">
+                <span>Category Count</span>
+                <strong id="category-count" class="metric-value metric-value-count metric-value-mono metric-value-numeric">0</strong>
+            </article>
+        </div>
+    </section>
+
+    <div class="workspace-frame">
+        <aside class="workspace-sidebar">
+            <div class="sidebar-card">
+                <h2>Module Navigation</h2>
+                <a class="side-link" href="#directory">Specialist Directory</a>
+                <a class="side-link" href="#profile-panel">Profile Settings</a>
+                <a id="side-customer" class="side-link hidden" href="#customer-panel">Customer Workspace</a>
+                <a id="side-specialist" class="side-link hidden" href="#specialist-panel">Specialist Workspace</a>
+                <a id="side-admin" class="side-link hidden" href="#admin-panel">Admin Workspace</a>
+            </div>
+
+            <div class="sidebar-card">
+                <h2>Business Rules</h2>
+                <ul class="story-list compact-list">
+                    <li>The same time slot cannot be booked more than once.</li>
+                    <li>Only future slots can be booked or rescheduled.</li>
+                    <li>Completed bookings cannot be changed by customers.</li>
+                    <li>Pricing must be calculated by a consistent rule set.</li>
+                </ul>
+            </div>
+        </aside>
+
+        <div class="workspace-main">
+            <section class="panel" id="directory">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Directory</p>
+                        <h2>Specialist Directory</h2>
+                    </div>
+                    <p class="panel-note">Search bookable specialists by category, level, and availability.</p>
+                </div>
+
+                <form class="filter-form" id="specialist-search-form">
+                    <label>
+                        <span>Search Term</span>
+                        <input id="search-keyword" type="text" placeholder="Name, category, or expertise">
+                    </label>
+                    <label>
+                        <span>Category</span>
+                        <select id="search-category">
+                            <option value="">All Categories</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Level</span>
+                        <select id="search-level">
+                            <option value="">All Levels</option>
+                            <option value="JUNIOR">JUNIOR</option>
+                            <option value="MID">MID</option>
+                            <option value="SENIOR">SENIOR</option>
+                            <option value="PRINCIPAL">PRINCIPAL</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Minimum Fee</span>
+                        <input id="search-min-fee" type="number" min="0" step="0.01" placeholder="No minimum">
+                    </label>
+                    <label>
+                        <span>Maximum Fee</span>
+                        <input id="search-max-fee" type="number" min="0" step="0.01" placeholder="No maximum">
+                    </label>
+                    <label>
+                        <span>Available At</span>
+                        <input id="search-available-at" type="datetime-local">
+                    </label>
+                    <button type="submit">Filter</button>
+                </form>
+
+                <div class="catalog-grid">
+                    <div id="specialist-results" class="card-grid"></div>
+                    <div class="slot-column">
+                        <div class="slot-column-head">
+                            <div>
+                                <h3>Specialist Time Slots</h3>
+                                <p id="slot-board-title">Select a specialist to view a 7-day slot window</p>
+                            </div>
+                            <div class="slot-toolbar">
+                                <label class="inline-field">
+                                    <span>Start Date</span>
+                                    <input id="slot-start-date" type="date">
+                                </label>
+                                <button class="ghost-button" id="slot-date-refresh" type="button">Update Window</button>
+                            </div>
+                        </div>
+                        <div id="slot-results" class="slot-list empty-state">No specialist selected yet</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel" id="profile-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Profile</p>
+                        <h2>Profile Settings</h2>
+                    </div>
+                    <p class="panel-note">Maintain your account contact details without leaving the workspace.</p>
+                </div>
+
+                <div class="two-column-panel">
+                    <form class="content-card stack-form" id="profile-form">
+                        <h3>Update Profile</h3>
+                        <label>
+                            <span>Full Name</span>
+                            <input id="profile-form-full-name" name="fullName" type="text" required>
+                        </label>
+                        <label>
+                            <span>Email</span>
+                            <input id="profile-form-email" name="email" type="email" required>
+                        </label>
+                        <label>
+                            <span>Phone</span>
+                            <input id="profile-form-phone" name="phone" type="text">
+                        </label>
+                        <button type="submit">Save Profile</button>
+                    </form>
+
+                    <div class="content-card">
+                        <h3>Profile Notes</h3>
+                        <ul class="story-list compact-list">
+                            <li>Your username stays fixed after account creation.</li>
+                            <li>Email addresses must remain unique across all accounts.</li>
+                            <li>Updated names are reflected in role-specific views after refresh.</li>
+                        </ul>
+                        <div class="card-actions">
+                            <a class="secondary-link" href="/change-password.html">Change Password</a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel hidden" id="customer-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Customer</p>
+                        <h2>Customer Workspace</h2>
+                    </div>
+                    <button class="ghost-button" id="refresh-customer-bookings" type="button">Refresh Bookings</button>
+                </div>
+
+                <div class="two-column-panel">
+                    <form class="content-card stack-form" id="booking-form">
+                        <h3>Create Booking</h3>
+                        <label>
+                            <span>Specialist ID</span>
+                            <input id="booking-specialist-id" name="specialistId" type="number" readonly required>
+                        </label>
+                        <label>
+                            <span>Time Slot ID</span>
+                            <input id="booking-slot-id" name="slotId" type="number" readonly required>
+                        </label>
+                        <label>
+                            <span>Topic</span>
+                            <input name="topic" type="text" maxlength="120" required>
+                        </label>
+                        <label>
+                            <span>Notes</span>
+                            <textarea name="notes" rows="4" placeholder="Enter context or supporting details"></textarea>
+                        </label>
+                        <button type="submit">Submit Booking</button>
+                    </form>
+
+                    <div class="content-card">
+                        <h3>Booking Guidance</h3>
+                        <ul class="story-list compact-list">
+                            <li>Browse time slots in the directory first, then write the selected slot into the booking form.</li>
+                            <li>New bookings enter the pending state by default.</li>
+                            <li>Future bookings can be cancelled or rescheduled, and rescheduled bookings must be confirmed again.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="status-filter-bar" id="customer-filter-bar">
+                    <button class="status-filter active" type="button" data-customer-filter="ALL">All Appointments</button>
+                    <button class="status-filter" type="button" data-customer-filter="PENDING">Pending</button>
+                    <button class="status-filter" type="button" data-customer-filter="CONFIRMED">Confirmed</button>
+                    <button class="status-filter" type="button" data-customer-filter="CANCELLED">Cancelled</button>
+                    <button class="status-filter" type="button" data-customer-filter="COMPLETED">Completed</button>
+                </div>
+
+                <div class="booking-stack" id="customer-bookings"></div>
+            </section>
+
+            <section class="panel hidden" id="specialist-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Specialist</p>
+                        <h2>Specialist Workspace</h2>
+                    </div>
+                    <button class="ghost-button" id="refresh-specialist-schedule" type="button">Refresh Schedule</button>
+                </div>
+
+                <div class="two-column-panel">
+                    <div class="content-card">
+                        <h3>Specialist Profile</h3>
+                        <div class="meta-list" id="specialist-profile"></div>
+                    </div>
+
+                    <form class="content-card stack-form" id="slot-form">
+                        <h3>Create Time Slot</h3>
+                        <div class="form-error hidden" data-form-error></div>
+                        <label>
+                            <span>Start Time</span>
+                            <input name="startTime" type="datetime-local" required>
+                            <small class="field-error" data-error-for="startTime"></small>
+                        </label>
+                        <label>
+                            <span>End Time</span>
+                            <input name="endTime" type="datetime-local" required>
+                            <small class="field-error" data-error-for="endTime"></small>
+                        </label>
+                        <button type="submit">Create Slot</button>
+                    </form>
+                </div>
+
+                <div class="status-filter-bar specialist-filter-bar" id="specialist-filter-bar">
+                    <button class="status-filter active" type="button" data-specialist-filter="PENDING">Pending Requests</button>
+                    <button class="status-filter" type="button" data-specialist-filter="CONFIRMED">Confirmed</button>
+                    <button class="status-filter" type="button" data-specialist-filter="COMPLETED">Completed</button>
+                    <button class="status-filter" type="button" data-specialist-filter="REJECTED">Declined</button>
+                </div>
+
+                <div class="booking-stack" id="specialist-schedule"></div>
+            </section>
+
+            <section class="panel hidden" id="admin-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Administration</p>
+                        <h2>Admin Workspace</h2>
+                    </div>
+                    <button class="ghost-button" id="refresh-admin-summary" type="button">Refresh Summary</button>
+                </div>
+
+                <div class="stats-grid" id="summary-grid"></div>
+
+                <div class="three-column-panel">
+                    <form class="content-card stack-form" id="category-form">
+                        <h3>Create Category</h3>
+                        <label>
+                            <span>Name</span>
+                            <input name="name" type="text" maxlength="80" required>
+                        </label>
+                        <label>
+                            <span>Description</span>
+                            <textarea name="description" rows="4"></textarea>
+                        </label>
+                        <button type="submit">Save Category</button>
+                    </form>
+
+                    <form class="content-card stack-form" id="admin-user-form">
+                        <h3>Create User Account</h3>
+                        <label>
+                            <span>Username</span>
+                            <input name="username" type="text" required>
+                        </label>
+                        <label>
+                            <span>Password</span>
+                            <input name="password" type="password" minlength="6" required>
+                        </label>
+                        <label>
+                            <span>Full Name</span>
+                            <input name="fullName" type="text" required>
+                        </label>
+                        <label>
+                            <span>Email</span>
+                            <input name="email" type="email" required>
+                        </label>
+                        <label>
+                            <span>Phone</span>
+                            <input name="phone" type="text">
+                        </label>
+                        <label>
+                            <span>Role</span>
+                            <select name="role" required>
+                                <option value="CUSTOMER">CUSTOMER</option>
+                                <option value="SPECIALIST">SPECIALIST</option>
+                                <option value="ADMIN">ADMIN</option>
+                            </select>
+                        </label>
+                        <button type="submit">Create Account</button>
+                        <p class="helper-text" id="created-user-tip">Latest created user ID: none</p>
+                    </form>
+
+                    <form class="content-card stack-form" id="admin-specialist-form">
+                        <h3>Create Specialist Profile</h3>
+                        <label>
+                            <span>User ID</span>
+                            <input name="userId" type="number" required>
+                        </label>
+                        <label>
+                            <span>Category</span>
+                            <select name="categoryId" id="admin-category-select" required></select>
+                        </label>
+                        <label>
+                            <span>Level</span>
+                            <select name="level" required>
+                                <option value="JUNIOR">JUNIOR</option>
+                                <option value="MID">MID</option>
+                                <option value="SENIOR">SENIOR</option>
+                                <option value="PRINCIPAL">PRINCIPAL</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Base Fee</span>
+                            <input name="baseFee" type="number" min="0" step="0.01" required>
+                        </label>
+                        <label>
+                            <span>Status</span>
+                            <select name="status" required>
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="INACTIVE">INACTIVE</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Bio</span>
+                            <textarea name="bio" rows="4"></textarea>
+                        </label>
+                        <button type="submit">Create Specialist Profile</button>
+                    </form>
+                </div>
+
+                <div class="category-list" id="category-list"></div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/dashboard.js"></script>
+</body>
+</html>

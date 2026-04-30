@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Registration | Consultancy Booking Management Platform</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body auth-page" data-page="register-hub">
+<div class="bg-orb orb-left"></div>
+<div class="bg-orb orb-right"></div>
+
+<header class="site-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">CB</span>
+        <span class="brand-copy">
+            <strong>ConsultBridge</strong>
+            <small>Consultancy Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <a class="button-link" href="/login.html">Sign In</a>
+    </nav>
+</header>
+
+<main class="auth-shell">
+    <section class="auth-story">
+        <p class="eyebrow">Registration Paths</p>
+        <h1>Choose the right registration path</h1>
+        <p>
+            The platform supports direct registration for customers and specialists. Customers can start booking immediately, while specialists can create a public consulting profile during sign-up.
+        </p>
+
+        <div class="story-card">
+            <strong>Before you continue</strong>
+            <ul class="story-list">
+                <li>Customer accounts can browse specialists, create bookings, and manage their booking history.</li>
+                <li>Specialist accounts can publish expertise details, manage time slots, and process bookings.</li>
+                <li>Administrator accounts are managed separately through internal operations control.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="auth-card">
+        <div class="auth-card-top">
+            <p class="eyebrow">Choose Role</p>
+            <h2>Select your registration type</h2>
+            <p>Each path uses a dedicated form so the account setup matches the role.</p>
+        </div>
+
+        <div class="choice-grid">
+            <article class="choice-card">
+                <p class="eyebrow">Customer</p>
+                <h3>Create a customer account</h3>
+                <p>Register to browse specialists, book appointments, and track workflow status.</p>
+                <a class="primary-link" href="/register-customer.html">Register as Customer</a>
+            </article>
+
+            <article class="choice-card">
+                <p class="eyebrow">Specialist</p>
+                <h3>Create a specialist account</h3>
+                <p>Register with your expertise category, level, and base fee to open a specialist workspace.</p>
+                <a class="secondary-link" href="/register-specialist.html">Register as Specialist</a>
+            </article>
+        </div>
+
+        <div class="auth-footer">
+            <span>Already registered?</span>
+            <a href="/login.html">Back to sign-in</a>
+        </div>
+    </section>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/auth.js"></script>
+</body>
+</html>

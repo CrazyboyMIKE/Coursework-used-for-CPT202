@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Specialist Registration | Consultancy Booking Management Platform</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body auth-page" data-page="register-specialist">
+<div class="bg-orb orb-left"></div>
+<div class="bg-orb orb-right"></div>
+
+<header class="site-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">CB</span>
+        <span class="brand-copy">
+            <strong>ConsultBridge</strong>
+            <small>Consultancy Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <a href="/register.html">Choose Role</a>
+        <a class="button-link" href="/login.html">Sign In</a>
+    </nav>
+</header>
+
+<main class="auth-shell">
+    <section class="auth-story">
+        <p class="eyebrow">Specialist Registration</p>
+        <h1>Open a specialist workspace</h1>
+        <p>
+            Specialist registration creates both the account and the specialist profile, so you can start managing availability, handling bookings, and maintaining profile information after sign-in.
+        </p>
+
+        <div class="story-card">
+            <strong>Profile details collected at registration</strong>
+            <ul class="story-list">
+                <li>Expertise category for directory placement.</li>
+                <li>Professional level for pricing and filtering.</li>
+                <li>Base fee used by the booking pricing rule.</li>
+                <li>Bio summary shown on the specialist directory.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="auth-card">
+        <div class="auth-card-top">
+            <p class="eyebrow">Specialist Account</p>
+            <h2>Create your specialist profile</h2>
+            <p>Use an active category and a valid base fee to create a visible specialist account.</p>
+        </div>
+
+        <form id="specialist-register-form" class="stack-form">
+            <div class="form-error hidden" data-form-error></div>
+            <label>
+                <span>Username</span>
+                <input name="username" type="text" autocomplete="username" required>
+                <small class="field-error" data-error-for="username"></small>
+            </label>
+            <label>
+                <span>Password</span>
+                <input name="password" type="password" minlength="6" autocomplete="new-password" required>
+                <small class="field-error" data-error-for="password"></small>
+            </label>
+            <label>
+                <span>Full Name</span>
+                <input name="fullName" type="text" autocomplete="name" required>
+                <small class="field-error" data-error-for="fullName"></small>
+            </label>
+            <label>
+                <span>Email</span>
+                <input name="email" type="email" autocomplete="email" required>
+                <small class="field-error" data-error-for="email"></small>
+            </label>
+            <label>
+                <span>Phone</span>
+                <input name="phone" type="text" autocomplete="tel">
+                <small class="field-error" data-error-for="phone"></small>
+            </label>
+            <label>
+                <span>Category</span>
+                <select id="specialist-category" name="categoryId" required>
+                    <option value="">Loading active categories...</option>
+                </select>
+                <small class="field-error" data-error-for="categoryId"></small>
+            </label>
+            <label>
+                <span>Level</span>
+                <select name="level" required>
+                    <option value="JUNIOR">JUNIOR</option>
+                    <option value="MID">MID</option>
+                    <option value="SENIOR">SENIOR</option>
+                    <option value="PRINCIPAL">PRINCIPAL</option>
+                </select>
+                <small class="field-error" data-error-for="level"></small>
+            </label>
+            <label>
+                <span>Base Fee</span>
+                <input name="baseFee" type="number" min="0" step="0.01" required>
+                <small class="field-error" data-error-for="baseFee"></small>
+            </label>
+            <label>
+                <span>Professional Bio</span>
+                <textarea name="bio" rows="4" placeholder="Describe your expertise, service focus, and consulting background"></textarea>
+                <small class="field-error" data-error-for="bio"></small>
+            </label>
+            <button type="submit">Create Specialist Account</button>
+        </form>
+
+        <div class="auth-footer">
+            <span>Need the customer path instead?</span>
+            <a href="/register-customer.html">Go to customer registration</a>
+        </div>
+    </section>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/auth.js"></script>
+</body>
+</html>
