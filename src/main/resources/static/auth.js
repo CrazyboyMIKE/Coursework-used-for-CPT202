@@ -30,11 +30,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (page === "register-specialist") {
-        try {
-            await loadSpecialistCategories();
-        } catch (error) {
-            app.showToast(error.message, "error", "toast");
-        }
         document.getElementById("specialist-register-form").addEventListener("submit", (event) =>
                 onRegister(event, "/api/auth/register/specialist", "Create Specialist Account", normalizeSpecialistPayload)
         );
@@ -207,30 +202,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    async function loadSpecialistCategories() {
-        const select = document.getElementById("specialist-category");
-        const submitButton = document.querySelector("#specialist-register-form button");
-        const categories = await app.api("/api/categories");
-        const activeCategories = categories.filter((category) => category.active);
-
-        if (!activeCategories.length) {
-            select.innerHTML = '<option value="">No active categories available</option>';
-            select.disabled = true;
-            submitButton.disabled = true;
-            app.showToast("No active categories are available. Please contact an administrator.", "error", "toast");
-            return;
-        }
-
-        select.innerHTML = activeCategories.map((category) =>
-                `<option value="${category.id}">${app.escapeHtml(category.name)}</option>`
-        ).join("");
-        submitButton.disabled = false;
-    }
-
     function normalizeSpecialistPayload(payload) {
         return {
             ...payload,
-            categoryId: Number(payload.categoryId),
+            categoryName: (payload.categoryName || "").trim(),
+            level: (payload.level || "").trim(),
             baseFee: Number(payload.baseFee)
         };
     }

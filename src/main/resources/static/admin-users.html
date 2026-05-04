@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management | Admin Portal</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body dashboard-body admin-body">
+<div class="bg-orb orb-left"></div>
+<div class="bg-orb orb-right"></div>
+
+<header class="dashboard-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">CB</span>
+        <span class="brand-copy">
+            <strong>ConsultBridge</strong>
+            <small>Consultancy Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav dashboard-nav workspace-nav admin-nav">
+        <a class="workspace-nav-pill" href="/admin.html">Overview</a>
+        <a class="workspace-nav-pill active" href="/admin-users.html" aria-current="page">User Management</a>
+        <a class="workspace-nav-pill" href="/admin-specialists.html">Specialist Management</a>
+        <a class="workspace-nav-pill" href="/admin-bookings.html">Booking Management</a>
+        <a class="workspace-nav-pill" href="/admin-categories.html">Category Management</a>
+    </nav>
+
+    <div class="account-panel">
+        <div class="account-meta">
+            <span class="muted-label">Signed In As</span>
+            <strong id="header-full-name">-</strong>
+        </div>
+        <span class="role-pill" id="header-role">ADMIN</span>
+        <button id="logout-button" class="ghost-button" type="button">Sign Out</button>
+    </div>
+</header>
+
+<main class="dashboard-main">
+    <section class="panel">
+        <div class="panel-head">
+            <div>
+                <p class="eyebrow">Accounts</p>
+                <h1>User Account Management</h1>
+            </div>
+            <button class="ghost-button" id="refresh-admin-data" type="button">Refresh Users</button>
+        </div>
+
+        <p class="panel-note">Select a customer, specialist, or administrator account from the list and update the stored account information.</p>
+
+        <div class="management-grid">
+            <div class="content-card">
+                <h3>Account Directory</h3>
+                <div id="user-list" class="management-list"></div>
+            </div>
+
+            <form id="admin-user-edit-form" class="content-card stack-form editor-card">
+                <h3>Edit Selected User</h3>
+                <label>
+                    <span>User ID</span>
+                    <input id="edit-user-id" name="userId" type="number" readonly>
+                </label>
+                <label>
+                    <span>Username</span>
+                    <input id="edit-user-username" name="username" type="text" required>
+                </label>
+                <label>
+                    <span>Full Name</span>
+                    <input id="edit-user-full-name" name="fullName" type="text" required>
+                </label>
+                <label>
+                    <span>Email</span>
+                    <input id="edit-user-email" name="email" type="email" required>
+                </label>
+                <label>
+                    <span>Phone</span>
+                    <input id="edit-user-phone" name="phone" type="text">
+                </label>
+                <label>
+                    <span>Role</span>
+                    <select id="edit-user-role" name="role" required>
+                        <option value="CUSTOMER">CUSTOMER</option>
+                        <option value="SPECIALIST">SPECIALIST</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Account Status</span>
+                    <select id="edit-user-active" name="active" required>
+                        <option value="true">ACTIVE</option>
+                        <option value="false">INACTIVE</option>
+                    </select>
+                </label>
+                <button type="submit">Save User Changes</button>
+            </form>
+        </div>
+    </section>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/admin.js"></script>
+</body>
+</html>

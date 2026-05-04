@@ -2,7 +2,6 @@ package com.example.consultingbooking.service;
 
 import com.example.consultingbooking.dto.SpecialistDtos;
 import com.example.consultingbooking.entity.SlotStatus;
-import com.example.consultingbooking.entity.SpecialistLevel;
 import com.example.consultingbooking.entity.SpecialistProfile;
 import com.example.consultingbooking.entity.SpecialistStatus;
 import com.example.consultingbooking.entity.TimeSlot;
@@ -61,10 +60,11 @@ public class SpecialistService {
         SpecialistProfile profile = new SpecialistProfile();
         profile.setUser(specialistUser);
         profile.setCategory(categoryService.getEntity(request.categoryId()));
-        profile.setLevel(request.level());
+        profile.setLevel(normalizeLevel(request.level()));
         profile.setBaseFee(request.baseFee());
+        profile.setFeeCurrency(normalizeCurrency(request.feeCurrency()));
         profile.setStatus(request.status());
-        profile.setBio(request.bio());
+        profile.setBio(normalizeOptionalText(request.bio()));
         return mapSpecialist(specialistProfileRepository.save(profile));
     }
 
@@ -78,17 +78,18 @@ public class SpecialistService {
 
         SpecialistProfile profile = getEntity(specialistId);
         profile.setCategory(categoryService.getEntity(request.categoryId()));
-        profile.setLevel(request.level());
+        profile.setLevel(normalizeLevel(request.level()));
         profile.setBaseFee(request.baseFee());
+        profile.setFeeCurrency(normalizeCurrency(request.feeCurrency()));
         profile.setStatus(request.status());
-        profile.setBio(request.bio());
+        profile.setBio(normalizeOptionalText(request.bio()));
         return mapSpecialist(specialistProfileRepository.save(profile));
     }
 
     @Transactional(readOnly = true)
     public List<SpecialistDtos.SpecialistResponse> searchSpecialists(
             Long categoryId,
-            SpecialistLevel level,
+            String level,
             String keyword,
             BigDecimal minFee,
             BigDecimal maxFee,
@@ -99,10 +100,12 @@ public class SpecialistService {
         }
 
         String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase();
+        String normalizedLevel = normalizeOptionalText(level);
         return specialistProfileRepository.findAll().stream()
                 .filter(profile -> profile.getStatus() == SpecialistStatus.ACTIVE)
                 .filter(profile -> categoryId == null || profile.getCategory().getId().equals(categoryId))
-                .filter(profile -> level == null || profile.getLevel() == level)
+                .filter(profile -> normalizedLevel == null
+                        || (profile.getLevel() != null && profile.getLevel().equalsIgnoreCase(normalizedLevel)))
                 .filter(profile -> normalizedKeyword == null || normalizedKeyword.isEmpty() || matchesKeyword(profile, normalizedKeyword))
                 .filter(profile -> minFee == null || profile.getBaseFee().compareTo(minFee) >= 0)
                 .filter(profile -> maxFee == null || profile.getBaseFee().compareTo(maxFee) <= 0)
@@ -161,6 +164,7 @@ public class SpecialistService {
     private boolean matchesKeyword(SpecialistProfile profile, String keyword) {
         return profile.getUser().getFullName().toLowerCase().contains(keyword)
                 || profile.getCategory().getName().toLowerCase().contains(keyword)
+                || (profile.getLevel() != null && profile.getLevel().toLowerCase().contains(keyword))
                 || (profile.getBio() != null && profile.getBio().toLowerCase().contains(keyword));
     }
 
@@ -173,8 +177,29 @@ public class SpecialistService {
                 profile.getCategory().getName(),
                 profile.getLevel(),
                 profile.getBaseFee(),
+                normalizeCurrency(profile.getFeeCurrency()),
                 profile.getStatus(),
                 profile.getBio()
         );
+    }
+
+    private String normalizeLevel(String value) {
+        String normalized = normalizeOptionalText(value);
+        if (normalized == null) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Professional title or certification is required");
+        }
+        return normalized;
+    }
+
+    private String normalizeOptionalText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeCurrency(String value) {
+        return "USD";
     }
 }

@@ -43,6 +43,7 @@ public final class BookingDtos {
             String topic,
             String notes,
             BigDecimal price,
+            String feeCurrency,
             String lastActionReason,
             LocalDateTime createdAt,
             LocalDateTime updatedAt

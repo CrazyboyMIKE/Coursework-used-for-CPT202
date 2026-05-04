@@ -1,6 +1,5 @@
 package com.example.consultingbooking.dto;
 
-import com.example.consultingbooking.entity.SpecialistLevel;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -29,10 +28,11 @@ public final class AuthDtos {
             @NotBlank @Size(max = 100) String fullName,
             @NotBlank @Email @Size(max = 120) String email,
             @Size(max = 30) String phone,
-            @NotNull Long categoryId,
-            @NotNull SpecialistLevel level,
+            @NotBlank @Size(max = 80) String categoryName,
+            @NotBlank @Size(max = 120) String level,
             @NotNull @DecimalMin("0.0") BigDecimal baseFee,
-            @Size(max = 500) String bio
+            String feeCurrency,
+            @NotBlank(message = "Notes are required") @Size(max = 500) String bio
     ) {
     }
 

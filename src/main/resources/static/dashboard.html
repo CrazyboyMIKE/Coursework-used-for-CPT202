@@ -19,12 +19,6 @@
         </span>
     </a>
 
-    <nav class="site-nav dashboard-nav">
-        <a href="/">Project Home</a>
-        <a href="/register.html">Choose Registration</a>
-        <a href="/admin.html">Admin Portal</a>
-    </nav>
-
     <div class="account-panel">
         <div class="account-meta">
             <span class="muted-label">Signed In As</span>
@@ -45,9 +39,10 @@
             </p>
 
             <div class="anchor-strip">
-                <a href="#directory">Specialist Directory</a>
+                <a id="anchor-directory" href="#directory">Specialist Directory</a>
                 <a href="#profile-panel">Profile Settings</a>
-                <a id="anchor-customer" class="hidden" href="#customer-panel">Customer Workspace</a>
+                <a id="anchor-customer-directory" class="hidden" href="/customer-directory.html">Browse Specialists</a>
+                <a id="anchor-customer-bookings" class="hidden" href="/customer-booking.html">Booking Center</a>
                 <a id="anchor-specialist" class="hidden" href="#specialist-panel">Specialist Workspace</a>
                 <a id="anchor-admin" class="hidden" href="#admin-panel">Admin Workspace</a>
             </div>
@@ -77,9 +72,10 @@
         <aside class="workspace-sidebar">
             <div class="sidebar-card">
                 <h2>Module Navigation</h2>
-                <a class="side-link" href="#directory">Specialist Directory</a>
+                <a id="side-directory" class="side-link" href="#directory">Specialist Directory</a>
                 <a class="side-link" href="#profile-panel">Profile Settings</a>
-                <a id="side-customer" class="side-link hidden" href="#customer-panel">Customer Workspace</a>
+                <a id="side-customer-directory" class="side-link hidden" href="/customer-directory.html">Browse Specialists</a>
+                <a id="side-customer-bookings" class="side-link hidden" href="/customer-booking.html">Booking Center</a>
                 <a id="side-specialist" class="side-link hidden" href="#specialist-panel">Specialist Workspace</a>
                 <a id="side-admin" class="side-link hidden" href="#admin-panel">Admin Workspace</a>
             </div>
@@ -102,7 +98,7 @@
                         <p class="eyebrow">Directory</p>
                         <h2>Specialist Directory</h2>
                     </div>
-                    <p class="panel-note">Search bookable specialists by category, level, and availability.</p>
+                    <p class="panel-note">Search bookable specialists by category, professional title or certification, and availability.</p>
                 </div>
 
                 <form class="filter-form" id="specialist-search-form">
@@ -117,14 +113,8 @@
                         </select>
                     </label>
                     <label>
-                        <span>Level</span>
-                        <select id="search-level">
-                            <option value="">All Levels</option>
-                            <option value="JUNIOR">JUNIOR</option>
-                            <option value="MID">MID</option>
-                            <option value="SENIOR">SENIOR</option>
-                            <option value="PRINCIPAL">PRINCIPAL</option>
-                        </select>
+                        <span>Professional Title or Certification</span>
+                        <input id="search-level" type="text" placeholder="For example: CFA, Senior Consultant">
                     </label>
                     <label>
                         <span>Minimum Fee</span>
@@ -141,25 +131,7 @@
                     <button type="submit">Filter</button>
                 </form>
 
-                <div class="catalog-grid">
-                    <div id="specialist-results" class="card-grid"></div>
-                    <div class="slot-column">
-                        <div class="slot-column-head">
-                            <div>
-                                <h3>Specialist Time Slots</h3>
-                                <p id="slot-board-title">Select a specialist to view a 7-day slot window</p>
-                            </div>
-                            <div class="slot-toolbar">
-                                <label class="inline-field">
-                                    <span>Start Date</span>
-                                    <input id="slot-start-date" type="date">
-                                </label>
-                                <button class="ghost-button" id="slot-date-refresh" type="button">Update Window</button>
-                            </div>
-                        </div>
-                        <div id="slot-results" class="slot-list empty-state">No specialist selected yet</div>
-                    </div>
-                </div>
+                <div id="specialist-results" class="card-grid"></div>
             </section>
 
             <section class="panel" id="profile-panel">
@@ -216,13 +188,24 @@
                     <form class="content-card stack-form" id="booking-form">
                         <h3>Create Booking</h3>
                         <label>
-                            <span>Specialist ID</span>
-                            <input id="booking-specialist-id" name="specialistId" type="number" readonly required>
+                            <span>Find Specialist</span>
+                            <input id="booking-specialist-query" type="text" placeholder="Type a specialist ID or name" autocomplete="off">
+                            <small class="helper-text">Start typing to view matching specialists and available booking details.</small>
                         </label>
-                        <label>
-                            <span>Time Slot ID</span>
-                            <input id="booking-slot-id" name="slotId" type="number" readonly required>
-                        </label>
+                        <div id="booking-specialist-suggestions" class="booking-lookup-list empty-state">No specialist search has been started yet</div>
+                        <div id="booking-specialist-summary" class="notice-card hidden"></div>
+                        <div class="content-card booking-slot-browser">
+                            <div class="card-head">
+                                <div>
+                                    <h3>Available Booking Times</h3>
+                                    <p class="panel-note" id="booking-slot-browser-title">Choose a specialist to load appointment times</p>
+                                </div>
+                            </div>
+                            <div id="booking-available-slots" class="slot-list empty-state">No specialist selected yet</div>
+                        </div>
+                        <div id="booking-slot-summary" class="notice-card hidden"></div>
+                        <input id="booking-specialist-id" name="specialistId" type="hidden" required>
+                        <input id="booking-slot-id" name="slotId" type="hidden" required>
                         <label>
                             <span>Topic</span>
                             <input name="topic" type="text" maxlength="120" required>
@@ -237,7 +220,8 @@
                     <div class="content-card">
                         <h3>Booking Guidance</h3>
                         <ul class="story-list compact-list">
-                            <li>Browse time slots in the directory first, then write the selected slot into the booking form.</li>
+                            <li>Search by specialist name or specialist ID to see matching profiles immediately.</li>
+                            <li>Select an available time slot to preview the estimated booking price before submitting.</li>
                             <li>New bookings enter the pending state by default.</li>
                             <li>Future bookings can be cancelled or rescheduled, and rescheduled bookings must be confirmed again.</li>
                         </ul>
@@ -367,17 +351,13 @@
                             <select name="categoryId" id="admin-category-select" required></select>
                         </label>
                         <label>
-                            <span>Level</span>
-                            <select name="level" required>
-                                <option value="JUNIOR">JUNIOR</option>
-                                <option value="MID">MID</option>
-                                <option value="SENIOR">SENIOR</option>
-                                <option value="PRINCIPAL">PRINCIPAL</option>
-                            </select>
+                            <span>Professional Title or Certification</span>
+                            <input name="level" type="text" maxlength="120" required>
                         </label>
                         <label>
                             <span>Base Fee</span>
                             <input name="baseFee" type="number" min="0" step="0.01" required>
+                            <input name="feeCurrency" type="hidden" value="USD">
                         </label>
                         <label>
                             <span>Status</span>
@@ -387,7 +367,7 @@
                             </select>
                         </label>
                         <label>
-                            <span>Bio</span>
+                            <span>Notes</span>
                             <textarea name="bio" rows="4"></textarea>
                         </label>
                         <button type="submit">Create Specialist Profile</button>

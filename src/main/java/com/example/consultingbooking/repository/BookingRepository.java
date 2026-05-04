@@ -20,6 +20,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findBySpecialistUserIdAndStatusOrderBySlotStartTimeAsc(Long userId, BookingStatus status);
 
+    List<Booking> findAllByOrderBySlotStartTimeDesc();
+
+    List<Booking> findByStatusOrderBySlotStartTimeDesc(BookingStatus status);
+
     @Query("select coalesce(sum(b.price), 0) from Booking b where b.status = 'CONFIRMED' or b.status = 'COMPLETED'")
     BigDecimal totalConfirmedRevenue();
 }

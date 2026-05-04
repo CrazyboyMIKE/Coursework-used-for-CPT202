@@ -5,7 +5,6 @@ import com.example.consultingbooking.dto.AuthDtos;
 import com.example.consultingbooking.entity.BookingStatus;
 import com.example.consultingbooking.entity.ExpertiseCategory;
 import com.example.consultingbooking.entity.SlotStatus;
-import com.example.consultingbooking.entity.SpecialistLevel;
 import com.example.consultingbooking.entity.SpecialistProfile;
 import com.example.consultingbooking.entity.SpecialistStatus;
 import com.example.consultingbooking.entity.TimeSlot;
@@ -70,7 +69,8 @@ class BookingWorkflowIntegrationTest {
         );
 
         Assertions.assertEquals(BookingStatus.PENDING, booking.status());
-        Assertions.assertEquals(new BigDecimal("330.00"), booking.price());
+        Assertions.assertEquals(new BigDecimal("300.00"), booking.price());
+        Assertions.assertEquals("USD", booking.feeCurrency());
         Assertions.assertEquals(SlotStatus.RESERVED, timeSlotRepository.findById(fixture.slot().getId()).orElseThrow().getStatus());
     }
 
@@ -154,8 +154,9 @@ class BookingWorkflowIntegrationTest {
                 new com.example.consultingbooking.dto.SpecialistDtos.SpecialistRequest(
                         specialistUser.getId(),
                         category.getId(),
-                        SpecialistLevel.SENIOR,
+                        "Senior Strategy Consultant",
                         new BigDecimal("300.00"),
+                        "USD",
                         SpecialistStatus.ACTIVE,
                         "Senior strategy consultant"
                 )

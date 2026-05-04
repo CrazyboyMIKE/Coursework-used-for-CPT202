@@ -1,6 +1,5 @@
 package com.example.consultingbooking.service;
 
-import com.example.consultingbooking.entity.SpecialistLevel;
 import com.example.consultingbooking.entity.SpecialistProfile;
 import com.example.consultingbooking.entity.TimeSlot;
 import java.math.BigDecimal;
@@ -18,21 +17,11 @@ public class PricingService {
                 .divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
         BigDecimal amount = specialist.getBaseFee().multiply(hours);
 
-        amount = amount.multiply(levelMultiplier(specialist.getLevel()));
         if (isWeekend(slot)) {
             amount = amount.multiply(BigDecimal.valueOf(1.15));
         }
 
         return amount.setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal levelMultiplier(SpecialistLevel level) {
-        return switch (level) {
-            case JUNIOR -> BigDecimal.valueOf(1.00);
-            case MID -> BigDecimal.valueOf(1.05);
-            case SENIOR -> BigDecimal.valueOf(1.10);
-            case PRINCIPAL -> BigDecimal.valueOf(1.20);
-        };
     }
 
     private boolean isWeekend(TimeSlot slot) {

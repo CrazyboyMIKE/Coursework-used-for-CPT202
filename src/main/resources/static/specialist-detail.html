@@ -19,10 +19,10 @@
         </span>
     </a>
 
-    <nav class="site-nav">
-        <a href="/dashboard.html">Workspace</a>
-        <a href="/register.html">Choose Registration</a>
-        <a class="button-link" href="/login.html">Sign In</a>
+    <nav class="site-nav workspace-nav">
+        <a class="workspace-nav-pill" href="/dashboard.html">Profile Center</a>
+        <a class="workspace-nav-pill active" href="/customer-directory.html" aria-current="page">Specialist Directory</a>
+        <a class="workspace-nav-pill" href="/customer-booking.html">Booking Center</a>
     </nav>
 </header>
 
@@ -38,6 +38,7 @@
                 <div class="detail-state" id="specialist-detail-state">Loading specialist details...</div>
                 <div class="meta-list hidden" id="specialist-detail-meta"></div>
                 <div class="notice-card hidden" id="specialist-detail-notice"></div>
+                <div class="card-actions hidden" id="specialist-detail-actions"></div>
             </article>
 
             <article class="content-card detail-card">

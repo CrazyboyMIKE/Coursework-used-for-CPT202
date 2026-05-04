@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Management | Admin Portal</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body dashboard-body admin-body">
+<div class="bg-orb orb-left"></div>
+<div class="bg-orb orb-right"></div>
+
+<header class="dashboard-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">CB</span>
+        <span class="brand-copy">
+            <strong>ConsultBridge</strong>
+            <small>Consultancy Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav dashboard-nav workspace-nav admin-nav">
+        <a class="workspace-nav-pill" href="/admin.html">Overview</a>
+        <a class="workspace-nav-pill" href="/admin-users.html">User Management</a>
+        <a class="workspace-nav-pill" href="/admin-specialists.html">Specialist Management</a>
+        <a class="workspace-nav-pill active" href="/admin-bookings.html" aria-current="page">Booking Management</a>
+        <a class="workspace-nav-pill" href="/admin-categories.html">Category Management</a>
+    </nav>
+
+    <div class="account-panel">
+        <div class="account-meta">
+            <span class="muted-label">Signed In As</span>
+            <strong id="header-full-name">-</strong>
+        </div>
+        <span class="role-pill" id="header-role">ADMIN</span>
+        <button id="logout-button" class="ghost-button" type="button">Sign Out</button>
+    </div>
+</header>
+
+<main class="dashboard-main">
+    <section class="panel">
+        <div class="panel-head">
+            <div>
+                <p class="eyebrow">Bookings</p>
+                <h1>Booking Management</h1>
+            </div>
+            <button class="ghost-button" id="refresh-admin-data" type="button">Refresh Bookings</button>
+        </div>
+
+        <p class="panel-note">Review all customer bookings, filter by status, and apply administrative actions to pending or confirmed consultations.</p>
+
+        <div class="status-filter-bar" id="admin-booking-filter-bar">
+            <button class="status-filter active" type="button" data-admin-booking-filter="ALL">All Bookings</button>
+            <button class="status-filter" type="button" data-admin-booking-filter="PENDING">Pending</button>
+            <button class="status-filter" type="button" data-admin-booking-filter="CONFIRMED">Confirmed</button>
+            <button class="status-filter" type="button" data-admin-booking-filter="COMPLETED">Completed</button>
+            <button class="status-filter" type="button" data-admin-booking-filter="CANCELLED">Cancelled</button>
+            <button class="status-filter" type="button" data-admin-booking-filter="REJECTED">Rejected</button>
+        </div>
+
+        <div class="management-list booking-admin-list" id="admin-booking-list"></div>
+    </section>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/admin.js"></script>
+</body>
+</html>

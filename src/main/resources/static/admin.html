@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal | Consultancy Booking Management Platform</title>
+    <title>Admin Overview | Consultancy Booking Management Platform</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="site-body dashboard-body admin-body">
@@ -19,10 +19,12 @@
         </span>
     </a>
 
-    <nav class="site-nav dashboard-nav">
-        <a href="/">Project Home</a>
-        <a href="/dashboard.html">Workspace</a>
-        <a href="/register.html">Choose Registration</a>
+    <nav class="site-nav dashboard-nav workspace-nav admin-nav">
+        <a class="workspace-nav-pill active" href="/admin.html" aria-current="page">Overview</a>
+        <a class="workspace-nav-pill" href="/admin-users.html">User Management</a>
+        <a class="workspace-nav-pill" href="/admin-specialists.html">Specialist Management</a>
+        <a class="workspace-nav-pill" href="/admin-bookings.html">Booking Management</a>
+        <a class="workspace-nav-pill" href="/admin-categories.html">Category Management</a>
     </nav>
 
     <div class="account-panel">
@@ -39,16 +41,14 @@
     <section class="dashboard-banner">
         <div class="banner-copy">
             <p class="eyebrow">Admin Control</p>
-            <h1>Platform administration portal</h1>
+            <h1>Platform administration overview</h1>
             <p id="admin-subtitle">
-                Review operational metrics, edit customer accounts, and update specialist records from one dedicated control center.
+                Monitor platform activity and move directly into the user, specialist, booking, or category modules.
             </p>
 
             <div class="anchor-strip">
                 <a href="#summary-panel">Summary</a>
-                <a href="#user-management">User Accounts</a>
-                <a href="#specialist-management">Specialist Profiles</a>
-                <a href="#category-panel">Categories</a>
+                <a href="#admin-modules">Management Modules</a>
             </div>
         </div>
 
@@ -78,223 +78,61 @@
                 <p class="eyebrow">Overview</p>
                 <h2>Operational Summary</h2>
             </div>
-            <button class="ghost-button" id="refresh-admin-data" type="button">Refresh Portal Data</button>
+            <button class="ghost-button" id="refresh-admin-data" type="button">Refresh Overview</button>
         </div>
 
         <div class="stats-grid" id="summary-grid"></div>
     </section>
 
-    <section class="panel" id="user-management">
+    <section class="panel" id="admin-modules">
         <div class="panel-head">
             <div>
-                <p class="eyebrow">Accounts</p>
-                <h2>User Account Management</h2>
+                <p class="eyebrow">Admin Modules</p>
+                <h2>Choose a Management Area</h2>
             </div>
-            <p class="panel-note">Select a customer, specialist, or admin account from the list and update the stored account information.</p>
+            <p class="panel-note">Each module has its own page so administrative work stays clearer and easier to maintain.</p>
         </div>
 
-        <div class="management-grid">
-            <div class="content-card">
-                <h3>Account Directory</h3>
-                <div id="user-list" class="management-list"></div>
-            </div>
-
-            <form id="admin-user-edit-form" class="content-card stack-form editor-card">
-                <h3>Edit Selected User</h3>
-                <label>
-                    <span>User ID</span>
-                    <input id="edit-user-id" name="userId" type="number" readonly>
-                </label>
-                <label>
-                    <span>Username</span>
-                    <input id="edit-user-username" name="username" type="text" required>
-                </label>
-                <label>
-                    <span>Full Name</span>
-                    <input id="edit-user-full-name" name="fullName" type="text" required>
-                </label>
-                <label>
-                    <span>Email</span>
-                    <input id="edit-user-email" name="email" type="email" required>
-                </label>
-                <label>
-                    <span>Phone</span>
-                    <input id="edit-user-phone" name="phone" type="text">
-                </label>
-                <label>
-                    <span>Role</span>
-                    <select id="edit-user-role" name="role" required>
-                        <option value="CUSTOMER">CUSTOMER</option>
-                        <option value="SPECIALIST">SPECIALIST</option>
-                        <option value="ADMIN">ADMIN</option>
-                    </select>
-                </label>
-                <label>
-                    <span>Account Status</span>
-                    <select id="edit-user-active" name="active" required>
-                        <option value="true">ACTIVE</option>
-                        <option value="false">INACTIVE</option>
-                    </select>
-                </label>
-                <button type="submit">Save User Changes</button>
-            </form>
-        </div>
-    </section>
-
-    <section class="panel" id="specialist-management">
-        <div class="panel-head">
-            <div>
-                <p class="eyebrow">Specialists</p>
-                <h2>Specialist Profile Management</h2>
-            </div>
-            <p class="panel-note">Update category placement, seniority, pricing, status, and public bio for specialist accounts.</p>
-        </div>
-
-        <div class="two-column-panel admin-create-panel">
-            <form id="admin-specialist-create-form" class="content-card stack-form editor-card">
-                <h3>Create Specialist Profile</h3>
-                <div class="form-error hidden" data-form-error></div>
-                <label>
-                    <span>User ID</span>
-                    <input id="create-specialist-user-id" name="userId" type="number" required>
-                    <small class="field-error" data-error-for="userId"></small>
-                </label>
-                <label>
-                    <span>Category</span>
-                    <select id="create-specialist-category" name="categoryId" required></select>
-                    <small class="field-error" data-error-for="categoryId"></small>
-                </label>
-                <label>
-                    <span>Level</span>
-                    <select id="create-specialist-level" name="level" required>
-                        <option value="JUNIOR">JUNIOR</option>
-                        <option value="MID">MID</option>
-                        <option value="SENIOR">SENIOR</option>
-                        <option value="PRINCIPAL">PRINCIPAL</option>
-                    </select>
-                    <small class="field-error" data-error-for="level"></small>
-                </label>
-                <label>
-                    <span>Base Fee</span>
-                    <input id="create-specialist-base-fee" name="baseFee" type="number" min="0" step="0.01" required>
-                    <small class="field-error" data-error-for="baseFee"></small>
-                </label>
-                <label>
-                    <span>Status</span>
-                    <select id="create-specialist-status" name="status" required>
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
-                    </select>
-                    <small class="field-error" data-error-for="status"></small>
-                </label>
-                <label>
-                    <span>Bio</span>
-                    <textarea id="create-specialist-bio" name="bio" rows="4"></textarea>
-                    <small class="field-error" data-error-for="bio"></small>
-                </label>
-                <button type="submit">Create Specialist Profile</button>
-            </form>
-
-            <div class="content-card">
-                <h3>Creation Guidance</h3>
-                <ul class="story-list compact-list">
-                    <li>Create or identify a user account with the `SPECIALIST` role first.</li>
-                    <li>Choose an active category so the profile appears in the search directory.</li>
-                    <li>New specialist profiles are added to the management list immediately after creation.</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="management-grid">
-            <div class="content-card">
-                <h3>Specialist Directory</h3>
-                <div id="specialist-list" class="management-list"></div>
-            </div>
-
-            <form id="admin-specialist-edit-form" class="content-card stack-form editor-card">
-                <h3>Edit Selected Specialist</h3>
-                <label>
-                    <span>Specialist Profile ID</span>
-                    <input id="edit-specialist-id" name="specialistId" type="number" readonly>
-                </label>
-                <label>
-                    <span>User ID</span>
-                    <input id="edit-specialist-user-id" name="userId" type="number" readonly>
-                </label>
-                <label>
-                    <span>Category</span>
-                    <select id="edit-specialist-category" name="categoryId" required></select>
-                </label>
-                <label>
-                    <span>Level</span>
-                    <select id="edit-specialist-level" name="level" required>
-                        <option value="JUNIOR">JUNIOR</option>
-                        <option value="MID">MID</option>
-                        <option value="SENIOR">SENIOR</option>
-                        <option value="PRINCIPAL">PRINCIPAL</option>
-                    </select>
-                </label>
-                <label>
-                    <span>Base Fee</span>
-                    <input id="edit-specialist-base-fee" name="baseFee" type="number" min="0" step="0.01" required>
-                </label>
-                <label>
-                    <span>Status</span>
-                    <select id="edit-specialist-status" name="status" required>
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
-                    </select>
-                </label>
-                <label>
-                    <span>Bio</span>
-                    <textarea id="edit-specialist-bio" name="bio" rows="4"></textarea>
-                </label>
-                <button type="submit">Save Specialist Changes</button>
-            </form>
-        </div>
-    </section>
-
-    <section class="panel" id="category-panel">
-        <div class="panel-head">
-            <div>
-                <p class="eyebrow">Categories</p>
-                <h2>Category Management</h2>
-            </div>
-            <p class="panel-note">Create and update the category master data used across specialist registration, directory search, and admin maintenance.</p>
-        </div>
-
-        <div class="management-grid wide-grid">
-            <div class="content-card">
-                <h3>Category Directory</h3>
-                <div id="category-management-list" class="management-list"></div>
-            </div>
-
-            <form id="admin-category-form" class="content-card stack-form editor-card">
-                <h3>Create or Edit Category</h3>
-                <label>
-                    <span>Category ID</span>
-                    <input id="edit-category-id" name="categoryId" type="number" readonly>
-                </label>
-                <label>
-                    <span>Name</span>
-                    <input id="edit-category-name" name="name" type="text" maxlength="80" required>
-                </label>
-                <label>
-                    <span>Description</span>
-                    <textarea id="edit-category-description" name="description" rows="4"></textarea>
-                </label>
-                <label>
-                    <span>Status</span>
-                    <select id="edit-category-active" name="active" required>
-                        <option value="true">ACTIVE</option>
-                        <option value="false">INACTIVE</option>
-                    </select>
-                </label>
-                <div class="action-row">
-                    <button type="submit">Save Category</button>
-                    <button class="ghost-button" id="new-category-button" type="button">New Category</button>
+        <div class="choice-grid admin-shortcut-grid">
+            <article class="choice-card admin-shortcut-card">
+                <div>
+                    <h3>User Management</h3>
+                    <p>Review customer, specialist, and administrator accounts, then update account details and access status.</p>
                 </div>
-            </form>
+                <div class="card-actions">
+                    <a class="primary-link" href="/admin-users.html">Open User Management</a>
+                </div>
+            </article>
+
+            <article class="choice-card admin-shortcut-card">
+                <div>
+                    <h3>Specialist Management</h3>
+                    <p>Create specialist profiles, edit professional information, and keep public specialist records accurate.</p>
+                </div>
+                <div class="card-actions">
+                    <a class="primary-link" href="/admin-specialists.html">Open Specialist Management</a>
+                </div>
+            </article>
+
+            <article class="choice-card admin-shortcut-card">
+                <div>
+                    <h3>Booking Management</h3>
+                    <p>Review bookings across all statuses and apply administrative actions to pending or confirmed consultations.</p>
+                </div>
+                <div class="card-actions">
+                    <a class="primary-link" href="/admin-bookings.html">Open Booking Management</a>
+                </div>
+            </article>
+
+            <article class="choice-card admin-shortcut-card">
+                <div>
+                    <h3>Category Management</h3>
+                    <p>Maintain the specialist category master data used in registration, search, and booking workflows.</p>
+                </div>
+                <div class="card-actions">
+                    <a class="primary-link" href="/admin-categories.html">Open Category Management</a>
+                </div>
+            </article>
         </div>
     </section>
 </main>

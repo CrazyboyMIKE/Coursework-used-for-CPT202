@@ -2,8 +2,6 @@ package com.example.consultingbooking.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -30,14 +28,16 @@ public class SpecialistProfile {
     @JoinColumn(name = "category_id", nullable = false)
     private ExpertiseCategory category;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private SpecialistLevel level;
+    @Column(nullable = false, length = 120)
+    private String level;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal baseFee;
 
-    @Enumerated(EnumType.STRING)
+    @Column(name = "fee_currency", length = 3)
+    private String feeCurrency;
+
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
     @Column(nullable = false, length = 20)
     private SpecialistStatus status;
 
@@ -68,11 +68,11 @@ public class SpecialistProfile {
         this.category = category;
     }
 
-    public SpecialistLevel getLevel() {
+    public String getLevel() {
         return level;
     }
 
-    public void setLevel(SpecialistLevel level) {
+    public void setLevel(String level) {
         this.level = level;
     }
 
@@ -82,6 +82,14 @@ public class SpecialistProfile {
 
     public void setBaseFee(BigDecimal baseFee) {
         this.baseFee = baseFee;
+    }
+
+    public String getFeeCurrency() {
+        return feeCurrency;
+    }
+
+    public void setFeeCurrency(String feeCurrency) {
+        this.feeCurrency = feeCurrency;
     }
 
     public SpecialistStatus getStatus() {

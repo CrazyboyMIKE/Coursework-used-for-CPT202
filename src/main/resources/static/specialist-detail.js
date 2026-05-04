@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         state: document.getElementById("specialist-detail-state"),
         meta: document.getElementById("specialist-detail-meta"),
         notice: document.getElementById("specialist-detail-notice"),
+        actions: document.getElementById("specialist-detail-actions"),
         slots: document.getElementById("specialist-detail-slots")
     };
 
@@ -54,11 +55,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.meta.innerHTML = `
             <div><span class="muted-label">Specialist ID</span><strong>${specialist.id}</strong></div>
             <div><span class="muted-label">Category</span><strong>${app.escapeHtml(specialist.categoryName)}</strong></div>
-            <div><span class="muted-label">Level</span><strong>${specialist.level}</strong></div>
-            <div><span class="muted-label">Base Fee</span><strong>${app.formatCurrency(specialist.baseFee)}</strong></div>
+            <div><span class="muted-label">Professional Title / Certification</span><strong>${app.escapeHtml(specialist.level)}</strong></div>
+            <div><span class="muted-label">Base Fee</span><strong>${app.formatCurrency(specialist.baseFee, specialist.feeCurrency)}</strong></div>
             <div><span class="muted-label">Status</span><strong>${specialist.status}</strong></div>
-            <div><span class="muted-label">Bio</span><strong>${app.escapeHtml(specialist.bio || "No biography has been published yet.")}</strong></div>
+            <div><span class="muted-label">Notes</span><strong>${app.escapeHtml(specialist.bio || "No notes have been published yet.")}</strong></div>
         `;
+
+        elements.actions.classList.remove("hidden");
+        elements.actions.innerHTML = specialist.status === "ACTIVE"
+                ? `<a class="button-link" href="/customer-booking.html?specialistId=${specialist.id}">Book This Specialist</a>`
+                : `<a class="secondary-link" href="/customer-directory.html">Back to Specialist Directory</a>`;
 
         const notices = [];
         if (specialist.status !== "ACTIVE") {
@@ -83,6 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.state.textContent = message;
         elements.meta.classList.add("hidden");
         elements.notice.classList.add("hidden");
+        elements.actions.classList.add("hidden");
         elements.slots.innerHTML = '<div class="empty-state">Time slot data is unavailable because the profile could not be loaded.</div>';
     }
 });

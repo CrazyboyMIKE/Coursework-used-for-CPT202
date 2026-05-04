@@ -37,10 +37,10 @@
         <div class="story-card">
             <strong>Profile details collected at registration</strong>
             <ul class="story-list">
-                <li>Expertise category for directory placement.</li>
-                <li>Professional level for pricing and filtering.</li>
-                <li>Base fee used by the booking pricing rule.</li>
-                <li>Bio summary shown on the specialist directory.</li>
+                <li>Expertise category entered as free text for directory placement.</li>
+                <li>Professional title or certification entered in your own words.</li>
+                <li>Base fee entered and stored in USD.</li>
+                <li>Registration notes required for the public specialist profile.</li>
             </ul>
         </div>
     </section>
@@ -49,7 +49,7 @@
         <div class="auth-card-top">
             <p class="eyebrow">Specialist Account</p>
             <h2>Create your specialist profile</h2>
-            <p>Use an active category and a valid base fee to create a visible specialist account.</p>
+            <p>Enter your category, professional title, USD base fee, and required profile notes to create a visible specialist account.</p>
         </div>
 
         <form id="specialist-register-form" class="stack-form">
@@ -81,29 +81,23 @@
             </label>
             <label>
                 <span>Category</span>
-                <select id="specialist-category" name="categoryId" required>
-                    <option value="">Loading active categories...</option>
-                </select>
-                <small class="field-error" data-error-for="categoryId"></small>
+                <input id="specialist-category" name="categoryName" type="text" maxlength="80" placeholder="Enter your expertise category" required>
+                <small class="field-error" data-error-for="categoryName"></small>
             </label>
             <label>
-                <span>Level</span>
-                <select name="level" required>
-                    <option value="JUNIOR">JUNIOR</option>
-                    <option value="MID">MID</option>
-                    <option value="SENIOR">SENIOR</option>
-                    <option value="PRINCIPAL">PRINCIPAL</option>
-                </select>
+                <span>Professional Title or Certification</span>
+                <input name="level" type="text" maxlength="120" placeholder="For example: Licensed Career Coach, CFA, Senior Consultant" required>
                 <small class="field-error" data-error-for="level"></small>
             </label>
             <label>
                 <span>Base Fee</span>
-                <input name="baseFee" type="number" min="0" step="0.01" required>
+                <input name="baseFee" type="number" min="0" step="0.01" placeholder="Enter your base fee in USD" required>
+                <input name="feeCurrency" type="hidden" value="USD">
                 <small class="field-error" data-error-for="baseFee"></small>
             </label>
             <label>
-                <span>Professional Bio</span>
-                <textarea name="bio" rows="4" placeholder="Describe your expertise, service focus, and consulting background"></textarea>
+                <span>Registration Notes</span>
+                <textarea name="bio" rows="4" placeholder="Describe your expertise, credentials, consulting focus, and service background" required></textarea>
                 <small class="field-error" data-error-for="bio"></small>
             </label>
             <button type="submit">Create Specialist Account</button>

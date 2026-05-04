@@ -106,4 +106,13 @@ public class BookingController {
         UserAccount actor = authService.requireUser(token);
         return bookingService.specialistSchedule(actor, status);
     }
+
+    @GetMapping("/manage")
+    public List<BookingDtos.BookingResponse> manage(
+            @RequestHeader(AuthService.AUTH_HEADER) String token,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) BookingStatus status
+    ) {
+        UserAccount actor = authService.requireUser(token);
+        return bookingService.adminBookings(actor, status);
+    }
 }

@@ -1,7 +1,6 @@
 package com.example.consultingbooking.controller;
 
 import com.example.consultingbooking.dto.SpecialistDtos;
-import com.example.consultingbooking.entity.SpecialistLevel;
 import com.example.consultingbooking.entity.UserAccount;
 import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.SpecialistService;
@@ -37,7 +36,7 @@ public class SpecialistController {
     @GetMapping
     public List<SpecialistDtos.SpecialistResponse> search(
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) SpecialistLevel level,
+            @RequestParam(required = false) String level,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) BigDecimal minFee,
             @RequestParam(required = false) BigDecimal maxFee,

@@ -14,23 +14,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     const state = {
         user,
         categories: [],
-        selectedSpecialistId: null,
-        selectedSpecialistName: "",
+        directorySpecialists: [],
+        bookingCandidates: [],
+        selectedBookingSpecialist: null,
+        selectedBookingSlots: [],
         selectedSlotId: null,
-        selectedSlots: [],
         selectedSlotWindowStart: todayDateValue(),
         customerStatusFilter: "ALL",
         specialistStatusFilter: "PENDING",
-        specialistProfile: null
+        specialistProfile: null,
+        bookingSearchRequestId: 0,
+        bookingSearchTimer: null
     };
 
     const elements = {
-        anchorCustomer: document.getElementById("anchor-customer"),
+        anchorDirectory: document.getElementById("anchor-directory"),
+        anchorCustomerDirectory: document.getElementById("anchor-customer-directory"),
+        anchorCustomerBookings: document.getElementById("anchor-customer-bookings"),
         anchorSpecialist: document.getElementById("anchor-specialist"),
         anchorAdmin: document.getElementById("anchor-admin"),
-        sideCustomer: document.getElementById("side-customer"),
+        sideDirectory: document.getElementById("side-directory"),
+        sideCustomerDirectory: document.getElementById("side-customer-directory"),
+        sideCustomerBookings: document.getElementById("side-customer-bookings"),
         sideSpecialist: document.getElementById("side-specialist"),
         sideAdmin: document.getElementById("side-admin"),
+        directoryPanel: document.getElementById("directory"),
         customerPanel: document.getElementById("customer-panel"),
         specialistPanel: document.getElementById("specialist-panel"),
         adminPanel: document.getElementById("admin-panel"),
@@ -47,12 +55,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         categoryCount: document.getElementById("category-count"),
         dashboardSubtitle: document.getElementById("dashboard-subtitle"),
         specialistResults: document.getElementById("specialist-results"),
-        slotResults: document.getElementById("slot-results"),
-        slotBoardTitle: document.getElementById("slot-board-title"),
-        slotStartDate: document.getElementById("slot-start-date"),
-        slotDateRefresh: document.getElementById("slot-date-refresh"),
         searchCategory: document.getElementById("search-category"),
         adminCategorySelect: document.getElementById("admin-category-select"),
+        bookingForm: document.getElementById("booking-form"),
+        bookingSpecialistQuery: document.getElementById("booking-specialist-query"),
+        bookingSpecialistSuggestions: document.getElementById("booking-specialist-suggestions"),
+        bookingSpecialistSummary: document.getElementById("booking-specialist-summary"),
+        bookingSlotBrowserTitle: document.getElementById("booking-slot-browser-title"),
+        bookingAvailableSlots: document.getElementById("booking-available-slots"),
+        bookingSlotSummary: document.getElementById("booking-slot-summary"),
         bookingSpecialistId: document.getElementById("booking-specialist-id"),
         bookingSlotId: document.getElementById("booking-slot-id"),
         customerFilterBar: document.getElementById("customer-filter-bar"),
@@ -71,20 +82,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     startAutoRefresh();
 
     await loadCategories();
-    await searchSpecialists();
+    if (state.user.role !== "CUSTOMER") {
+        await searchSpecialists();
+    }
     await refreshRoleWorkspace();
 
     function bindEvents() {
         document.getElementById("logout-button").addEventListener("click", onLogout);
         elements.profileForm.addEventListener("submit", onSaveProfile);
         document.getElementById("specialist-search-form").addEventListener("submit", onSearchSpecialists);
-        document.getElementById("booking-form").addEventListener("submit", onCreateBooking);
+        elements.bookingForm.addEventListener("submit", onCreateBooking);
+        elements.bookingSpecialistQuery.addEventListener("input", onBookingSpecialistQueryInput);
+        elements.bookingSpecialistSuggestions.addEventListener("click", onBookingSuggestionAction);
+        elements.bookingAvailableSlots.addEventListener("click", onBookingSlotSelectionAction);
         elements.slotForm.addEventListener("submit", onCreateSlot);
         elements.slotForm.querySelectorAll("input").forEach((input) => {
             input.addEventListener("input", () => validateSlotForm(elements.slotForm, false));
         });
-        elements.slotDateRefresh.addEventListener("click", onRefreshSlotWindow);
-        elements.slotStartDate.addEventListener("change", onRefreshSlotWindow);
         elements.customerFilterBar.addEventListener("click", onCustomerFilterChange);
         elements.specialistFilterBar.addEventListener("click", onSpecialistFilterChange);
         document.getElementById("category-form").addEventListener("submit", onCreateCategory);
@@ -94,7 +108,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("refresh-specialist-schedule").addEventListener("click", refreshSpecialistWorkspace);
         document.getElementById("refresh-admin-summary").addEventListener("click", refreshAdminWorkspace);
         elements.specialistResults.addEventListener("click", onSpecialistAction);
-        elements.slotResults.addEventListener("click", onSlotAction);
         elements.customerBookings.addEventListener("click", onCustomerBookingAction);
         elements.specialistSchedule.addEventListener("click", onSpecialistBookingAction);
     }
@@ -110,12 +123,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.profileEmail.title = state.user.email || "";
         elements.profilePhone.title = state.user.phone || "";
         elements.dashboardSubtitle.textContent = roleSubtitle(state.user.role);
-        elements.slotStartDate.value = state.selectedSlotWindowStart;
         renderProfileForm();
+        resetBookingComposer();
         renderCustomerFilterButtons();
         renderSpecialistFilterButtons();
 
-        toggleRoleVisibility(state.user.role === "CUSTOMER", elements.customerPanel, elements.anchorCustomer, elements.sideCustomer);
+        const isCustomer = state.user.role === "CUSTOMER";
+        toggleElementVisibility(!isCustomer, elements.directoryPanel);
+        toggleElementVisibility(!isCustomer, elements.anchorDirectory);
+        toggleElementVisibility(!isCustomer, elements.sideDirectory);
+        toggleElementVisibility(isCustomer, elements.anchorCustomerDirectory);
+        toggleElementVisibility(isCustomer, elements.anchorCustomerBookings);
+        toggleElementVisibility(isCustomer, elements.sideCustomerDirectory);
+        toggleElementVisibility(isCustomer, elements.sideCustomerBookings);
+        toggleElementVisibility(false, elements.customerPanel);
         toggleRoleVisibility(state.user.role === "SPECIALIST", elements.specialistPanel, elements.anchorSpecialist, elements.sideSpecialist);
         toggleRoleVisibility(state.user.role === "ADMIN", elements.adminPanel, elements.anchorAdmin, elements.sideAdmin);
     }
@@ -136,9 +157,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         side.classList.toggle("hidden", !show);
     }
 
+    function toggleElementVisibility(show, element) {
+        if (!element) {
+            return;
+        }
+        element.classList.toggle("hidden", !show);
+    }
+
     function roleSubtitle(role) {
         if (role === "CUSTOMER") {
-            return "You are signed in as a customer and can create, cancel, and reschedule bookings.";
+            return "You are signed in to your customer profile center. Use the dedicated directory and booking pages for searching specialists and managing appointments.";
         }
         if (role === "SPECIALIST") {
             return "You are signed in as a specialist and can manage time slots and handle pending bookings.";
@@ -265,21 +293,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             const url = params.toString() ? `/api/specialists?${params.toString()}` : "/api/specialists";
             const specialists = await app.api(url);
+            state.directorySpecialists = specialists;
             renderSpecialists(specialists);
-            await reloadSelectedSlots();
-        } catch (error) {
-            app.showToast(error.message, "error", "toast");
-        }
-    }
-
-    async function reloadSelectedSlots() {
-        if (!state.selectedSpecialistId) {
-            return;
-        }
-
-        try {
-            state.selectedSlots = await app.api(buildSlotWindowUrl(state.selectedSpecialistId));
-            renderSlots();
         } catch (error) {
             app.showToast(error.message, "error", "toast");
         }
@@ -298,18 +313,17 @@ document.addEventListener("DOMContentLoaded", async () => {
                         <h3>${app.escapeHtml(specialist.fullName)}</h3>
                         <p>${app.escapeHtml(specialist.categoryName)}</p>
                     </div>
-                    <span class="badge">${specialist.level}</span>
+                    <span class="badge">${app.escapeHtml(specialist.level)}</span>
                 </div>
                 <div class="meta-block">
                     <span>Specialist ID: <strong>${specialist.id}</strong></span>
-                    <span>Base Fee: <strong>${app.formatCurrency(specialist.baseFee)}</strong></span>
+                    <span>Base Fee: <strong>${app.formatCurrency(specialist.baseFee, specialist.feeCurrency)}</strong></span>
                     <span>Status: <span class="status-pill ${specialist.status}">${specialist.status}</span></span>
                 </div>
                 <p>${app.escapeHtml(specialist.bio || "No bio available")}</p>
                 <div class="action-row">
-                    <a class="secondary-link compact-link" href="/specialist-detail.html?id=${specialist.id}">View Profile</a>
-                    <button type="button" data-action="load-slots" data-id="${specialist.id}" data-name="${app.escapeHtml(specialist.fullName)}">View Time Slots</button>
-                    <button class="ghost-button" type="button" data-action="prepare-booking" data-id="${specialist.id}">Write to Booking Form</button>
+                    <a class="secondary-link compact-link" href="/specialist-detail.html?id=${specialist.id}">View Profile & Availability</a>
+                    <button class="ghost-button" type="button" data-action="prepare-booking" data-id="${specialist.id}">Open Booking Assistant</button>
                 </div>
             </article>
         `).join("");
@@ -323,70 +337,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const action = button.dataset.action;
         const specialistId = Number(button.dataset.id);
+        const specialist = state.directorySpecialists.find((item) => item.id === specialistId) || null;
 
         if (action === "prepare-booking") {
-            elements.bookingSpecialistId.value = String(specialistId);
-            app.showToast("Specialist ID added. Please select a time slot next.", "success", "toast");
-            return;
-        }
-
-        if (action === "load-slots") {
-            state.selectedSpecialistId = specialistId;
-            state.selectedSpecialistName = button.dataset.name;
-            elements.slotBoardTitle.textContent = `7-day slot window for ${button.dataset.name}`;
-            elements.bookingSpecialistId.value = String(specialistId);
-
-            try {
-                state.selectedSlots = await app.api(buildSlotWindowUrl(specialistId));
-                renderSlots();
-            } catch (error) {
-                app.showToast(error.message, "error", "toast");
+            if (!specialist) {
+                app.showToast("Unable to load the selected specialist into the booking assistant.", "error", "toast");
+                return;
             }
+
+            await selectBookingSpecialist(specialist);
+            app.showToast("Specialist loaded into the booking assistant. Select a time slot next.", "success", "toast");
         }
-    }
-
-    function renderSlots() {
-        if (!state.selectedSlots.length) {
-            elements.slotResults.innerHTML = '<div class="empty-state">No time slots were published in the selected 7-day window.</div>';
-            return;
-        }
-
-        elements.slotResults.innerHTML = state.selectedSlots.map((slot) => `
-            <article class="slot-item ${state.selectedSlotId === slot.id ? "selected" : ""} ${slot.status !== "AVAILABLE" ? "slot-muted" : ""}">
-                <div class="slot-time">${app.formatDateTime(slot.startTime)} - ${app.formatDateTime(slot.endTime)}</div>
-                <div class="meta-block">
-                    <span>Time Slot ID: <strong>${slot.id}</strong></span>
-                    <span>Status: <span class="status-pill ${slot.status}">${slot.status}</span></span>
-                </div>
-                <button
-                    class="ghost-button"
-                    type="button"
-                    data-action="select-slot"
-                    data-slot-id="${slot.id}"
-                    data-specialist-id="${slot.specialistId}"
-                    ${slot.status !== "AVAILABLE" ? "disabled" : ""}
-                    title="${slot.status === "AVAILABLE" ? "Select this slot for booking" : "This slot is not available for booking"}"
-                >${slot.status === "AVAILABLE" ? "Select This Slot" : "Unavailable"}</button>
-            </article>
-        `).join("");
-    }
-
-    function onSlotAction(event) {
-        const button = event.target.closest("[data-action='select-slot']");
-        if (!button) {
-            return;
-        }
-
-        state.selectedSlotId = Number(button.dataset.slotId);
-        elements.bookingSpecialistId.value = button.dataset.specialistId;
-        elements.bookingSlotId.value = button.dataset.slotId;
-        renderSlots();
-        app.showToast(`Time slot ${button.dataset.slotId} selected.`, "success", "toast");
     }
 
     async function onCreateBooking(event) {
         event.preventDefault();
         const form = event.currentTarget;
+
+        if (!state.selectedBookingSpecialist) {
+            app.showToast("Please choose a specialist before creating a booking.", "error", "toast");
+            return;
+        }
+
+        if (!state.selectedSlotId || !elements.bookingSlotId.value) {
+            app.showToast("Please choose an available time slot before creating a booking.", "error", "toast");
+            return;
+        }
+
         const payload = app.formToObject(form);
         payload.specialistId = Number(payload.specialistId);
         payload.slotId = Number(payload.slotId);
@@ -396,23 +373,348 @@ document.addEventListener("DOMContentLoaded", async () => {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
-            form.reset();
-            elements.bookingSpecialistId.value = "";
-            elements.bookingSlotId.value = "";
-            state.selectedSlotId = null;
+            resetBookingComposer();
             await refreshCustomerWorkspace();
             await searchSpecialists();
-            renderSlots();
             app.showToast("Booking submitted and waiting for confirmation.", "success", "toast");
         } catch (error) {
             app.showToast(error.message, "error", "toast");
         }
     }
 
-    async function refreshRoleWorkspace() {
-        if (state.user.role === "CUSTOMER") {
-            await refreshCustomerWorkspace();
+    function onBookingSpecialistQueryInput(event) {
+        const query = event.currentTarget.value.trim();
+        window.clearTimeout(state.bookingSearchTimer);
+        clearBookingSelection(true);
+
+        if (!query) {
+            state.bookingCandidates = [];
+            renderBookingSuggestions();
+            return;
         }
+
+        state.bookingSearchTimer = window.setTimeout(() => {
+            loadBookingSpecialistCandidates(query);
+        }, 220);
+    }
+
+    async function loadBookingSpecialistCandidates(query) {
+        const requestId = ++state.bookingSearchRequestId;
+        const trimmedQuery = query.trim();
+
+        if (!trimmedQuery) {
+            state.bookingCandidates = [];
+            renderBookingSuggestions();
+            return;
+        }
+
+        try {
+            const candidates = [];
+
+            if (/^\d+$/.test(trimmedQuery)) {
+                try {
+                    const exact = await app.api(`/api/specialists/${Number(trimmedQuery)}`);
+                    candidates.push(exact);
+                } catch (error) {
+                    // Ignore missing exact-match specialists and continue with keyword search.
+                }
+            }
+
+            const keywordMatches = await app.api(`/api/specialists?keyword=${encodeURIComponent(trimmedQuery)}`);
+            const unique = [];
+            const seen = new Set();
+
+            candidates.concat(keywordMatches).forEach((specialist) => {
+                if (!specialist || seen.has(specialist.id)) {
+                    return;
+                }
+                seen.add(specialist.id);
+                unique.push(specialist);
+            });
+
+            if (requestId !== state.bookingSearchRequestId) {
+                return;
+            }
+
+            state.bookingCandidates = unique.slice(0, 8);
+            renderBookingSuggestions(trimmedQuery);
+        } catch (error) {
+            if (requestId !== state.bookingSearchRequestId) {
+                return;
+            }
+
+            state.bookingCandidates = [];
+            renderBookingSuggestions(trimmedQuery, error.message || "Unable to load specialist matches.");
+        }
+    }
+
+    function renderBookingSuggestions(query = "", errorMessage = "") {
+        if (!query && !state.bookingCandidates.length) {
+            elements.bookingSpecialistSuggestions.className = "booking-lookup-list empty-state";
+            elements.bookingSpecialistSuggestions.textContent = "No specialist search has been started yet";
+            return;
+        }
+
+        if (errorMessage) {
+            elements.bookingSpecialistSuggestions.className = "booking-lookup-list empty-state";
+            elements.bookingSpecialistSuggestions.textContent = errorMessage;
+            return;
+        }
+
+        if (!state.bookingCandidates.length) {
+            elements.bookingSpecialistSuggestions.className = "booking-lookup-list empty-state";
+            elements.bookingSpecialistSuggestions.textContent = `No specialists match "${query}".`;
+            return;
+        }
+
+        elements.bookingSpecialistSuggestions.className = "booking-lookup-list";
+        elements.bookingSpecialistSuggestions.innerHTML = state.bookingCandidates.map((specialist) => `
+            <button
+                type="button"
+                class="booking-lookup-item ${state.selectedBookingSpecialist && state.selectedBookingSpecialist.id === specialist.id ? "active" : ""}"
+                data-booking-specialist-id="${specialist.id}"
+            >
+                <div class="card-head">
+                    <div>
+                        <strong>${app.escapeHtml(specialist.fullName)}</strong>
+                        <p>${app.escapeHtml(specialist.categoryName)}</p>
+                    </div>
+                    <span class="status-pill ${specialist.status}">${specialist.status}</span>
+                </div>
+                <div class="meta-block">
+                    <span>Specialist ID: <strong>${specialist.id}</strong></span>
+                    <span>Title / Certification: <strong>${app.escapeHtml(specialist.level)}</strong></span>
+                    <span>Base Fee: <strong>${app.formatCurrency(specialist.baseFee, specialist.feeCurrency)}</strong></span>
+                </div>
+            </button>
+        `).join("");
+    }
+
+    async function onBookingSuggestionAction(event) {
+        const button = event.target.closest("[data-booking-specialist-id]");
+        if (!button) {
+            return;
+        }
+
+        const specialistId = Number(button.dataset.bookingSpecialistId);
+        const specialist = state.bookingCandidates.find((item) => item.id === specialistId)
+                || state.directorySpecialists.find((item) => item.id === specialistId);
+
+        if (!specialist) {
+            app.showToast("Unable to load the selected specialist.", "error", "toast");
+            return;
+        }
+
+        await selectBookingSpecialist(specialist);
+    }
+
+    async function selectBookingSpecialist(specialist) {
+        state.selectedBookingSpecialist = specialist;
+        state.selectedSlotId = null;
+        state.selectedBookingSlots = [];
+        elements.bookingSpecialistId.value = String(specialist.id);
+        elements.bookingSlotId.value = "";
+        elements.bookingSpecialistQuery.value = `${specialist.fullName} (ID ${specialist.id})`;
+        elements.bookingSlotBrowserTitle.textContent = `Available appointment times for ${specialist.fullName}`;
+        renderBookingSuggestions(elements.bookingSpecialistQuery.value);
+        renderBookingSpecialistSummary();
+        renderBookingSlotSummary();
+        updateBookingSubmitState();
+
+        if (specialist.status !== "ACTIVE") {
+            renderBookingAvailableSlots("This specialist is currently unavailable for new bookings.");
+            return;
+        }
+
+        try {
+            state.selectedBookingSlots = await app.api(`/api/slots/specialists/${specialist.id}?fromDate=${state.selectedSlotWindowStart}&days=7`);
+            renderBookingAvailableSlots();
+        } catch (error) {
+            state.selectedBookingSlots = [];
+            renderBookingAvailableSlots(error.message || "Unable to load appointment times.");
+        }
+    }
+
+    function renderBookingSpecialistSummary() {
+        if (!state.selectedBookingSpecialist) {
+            elements.bookingSpecialistSummary.classList.add("hidden");
+            elements.bookingSpecialistSummary.innerHTML = "";
+            return;
+        }
+
+        const specialist = state.selectedBookingSpecialist;
+        elements.bookingSpecialistSummary.classList.remove("hidden");
+        elements.bookingSpecialistSummary.innerHTML = `
+            <div class="card-head">
+                <div>
+                    <strong>${app.escapeHtml(specialist.fullName)}</strong>
+                    <p>${app.escapeHtml(specialist.categoryName)}</p>
+                </div>
+                <span class="status-pill ${specialist.status}">${specialist.status}</span>
+            </div>
+            <div class="meta-block">
+                <span>Specialist ID: <strong>${specialist.id}</strong></span>
+                <span>Professional Title / Certification: <strong>${app.escapeHtml(specialist.level)}</strong></span>
+                <span>Base Fee: <strong>${app.formatCurrency(specialist.baseFee, specialist.feeCurrency)}</strong></span>
+                <span>Booking Eligibility: <strong>${specialist.status === "ACTIVE" ? "Specialist can accept bookings" : "Specialist is currently unavailable"}</strong></span>
+            </div>
+        `;
+    }
+
+    function renderBookingAvailableSlots(errorMessage = "") {
+        if (!state.selectedBookingSpecialist) {
+            elements.bookingAvailableSlots.className = "slot-list empty-state";
+            elements.bookingAvailableSlots.textContent = "No specialist selected yet";
+            return;
+        }
+
+        if (state.selectedBookingSpecialist.status !== "ACTIVE") {
+            elements.bookingAvailableSlots.className = "slot-list empty-state";
+            elements.bookingAvailableSlots.textContent = "This specialist is currently unavailable for new bookings.";
+            return;
+        }
+
+        if (errorMessage) {
+            elements.bookingAvailableSlots.className = "slot-list empty-state";
+            elements.bookingAvailableSlots.textContent = errorMessage;
+            return;
+        }
+
+        if (!state.selectedBookingSlots.length) {
+            elements.bookingAvailableSlots.className = "slot-list empty-state";
+            elements.bookingAvailableSlots.textContent = "No appointment times are published in the current 7-day window.";
+            return;
+        }
+
+        elements.bookingAvailableSlots.className = "slot-list";
+        elements.bookingAvailableSlots.innerHTML = state.selectedBookingSlots.map((slot) => `
+            <article class="slot-item ${state.selectedSlotId === slot.id ? "selected" : ""} ${slot.status !== "AVAILABLE" ? "slot-muted" : ""}">
+                <div class="slot-time">${app.formatDateTime(slot.startTime)} - ${app.formatDateTime(slot.endTime)}</div>
+                <div class="meta-block">
+                    <span>Time Slot ID: <strong>${slot.id}</strong></span>
+                    <span>Status: <span class="status-pill ${slot.status}">${slot.status}</span></span>
+                    <span>Estimated Price: <strong>${app.formatCurrency(estimateBookingPrice(state.selectedBookingSpecialist, slot), state.selectedBookingSpecialist.feeCurrency)}</strong></span>
+                    <span>Can Book: <strong>${slot.status === "AVAILABLE" ? "Yes" : "No"}</strong></span>
+                </div>
+                <button
+                    class="ghost-button"
+                    type="button"
+                    data-action="choose-booking-slot"
+                    data-slot-id="${slot.id}"
+                    ${slot.status !== "AVAILABLE" ? "disabled" : ""}
+                >${slot.status === "AVAILABLE" ? "Choose This Appointment" : "Unavailable"}</button>
+            </article>
+        `).join("");
+    }
+
+    function onBookingSlotSelectionAction(event) {
+        const button = event.target.closest("[data-action='choose-booking-slot']");
+        if (!button) {
+            return;
+        }
+
+        const slotId = Number(button.dataset.slotId);
+        const slot = state.selectedBookingSlots.find((item) => item.id === slotId);
+
+        if (!slot) {
+            app.showToast("The selected appointment time could not be found.", "error", "toast");
+            return;
+        }
+
+        applyBookingSlotSelection(slot);
+        app.showToast(`Appointment time ${slot.id} selected.`, "success", "toast");
+    }
+
+    function applyBookingSlotSelection(slot) {
+        state.selectedSlotId = slot.id;
+        elements.bookingSlotId.value = String(slot.id);
+        renderBookingAvailableSlots();
+        renderBookingSlotSummary();
+        updateBookingSubmitState();
+    }
+
+    function renderBookingSlotSummary() {
+        if (!state.selectedBookingSpecialist || !state.selectedSlotId) {
+            elements.bookingSlotSummary.classList.add("hidden");
+            elements.bookingSlotSummary.innerHTML = "";
+            return;
+        }
+
+        const slot = state.selectedBookingSlots.find((item) => item.id === state.selectedSlotId);
+
+        if (!slot) {
+            elements.bookingSlotSummary.classList.add("hidden");
+            elements.bookingSlotSummary.innerHTML = "";
+            return;
+        }
+
+        elements.bookingSlotSummary.classList.remove("hidden");
+        elements.bookingSlotSummary.innerHTML = `
+            <div class="card-head">
+                <div>
+                    <strong>Selected Appointment</strong>
+                    <p>${app.escapeHtml(state.selectedBookingSpecialist.fullName)}</p>
+                </div>
+                <span class="status-pill ${slot.status}">${slot.status}</span>
+            </div>
+            <div class="meta-block">
+                <span>Time Slot ID: <strong>${slot.id}</strong></span>
+                <span>Time: <strong>${app.formatDateTime(slot.startTime)} - ${app.formatDateTime(slot.endTime)}</strong></span>
+                <span>Estimated Price: <strong>${app.formatCurrency(estimateBookingPrice(state.selectedBookingSpecialist, slot), state.selectedBookingSpecialist.feeCurrency)}</strong></span>
+                <span>Availability: <strong>${slot.status === "AVAILABLE" ? "Ready to book" : "Not available for booking"}</strong></span>
+            </div>
+        `;
+    }
+
+    function clearBookingSelection(preserveQuery = false) {
+        state.selectedBookingSpecialist = null;
+        state.selectedBookingSlots = [];
+        state.selectedSlotId = null;
+        elements.bookingSpecialistId.value = "";
+        elements.bookingSlotId.value = "";
+        elements.bookingSlotBrowserTitle.textContent = "Choose a specialist to load appointment times";
+
+        if (!preserveQuery) {
+            elements.bookingSpecialistQuery.value = "";
+        }
+
+        renderBookingSpecialistSummary();
+        renderBookingAvailableSlots();
+        renderBookingSlotSummary();
+        updateBookingSubmitState();
+    }
+
+    function resetBookingComposer() {
+        state.bookingCandidates = [];
+        elements.bookingForm.reset();
+        clearBookingSelection(false);
+        renderBookingSuggestions();
+    }
+
+    function updateBookingSubmitState() {
+        const submitButton = elements.bookingForm.querySelector("button[type='submit']");
+        submitButton.disabled = !(
+            state.selectedBookingSpecialist
+            && state.selectedBookingSpecialist.status === "ACTIVE"
+            && elements.bookingSpecialistId.value
+            && elements.bookingSlotId.value
+        );
+    }
+
+    function estimateBookingPrice(specialist, slot) {
+        const minutes = Math.max(0, Math.round((new Date(slot.endTime) - new Date(slot.startTime)) / 60000));
+        const hours = minutes / 60;
+        let amount = Number(specialist.baseFee || 0) * hours;
+        const day = new Date(slot.startTime).getDay();
+
+        if (day === 0 || day === 6) {
+            amount *= 1.15;
+        }
+
+        return Math.round(amount * 100) / 100;
+    }
+
+    async function refreshRoleWorkspace() {
         if (state.user.role === "SPECIALIST") {
             await refreshSpecialistWorkspace();
         }
@@ -452,7 +754,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <div class="meta-block">
                     <span>Booking ID: <strong>${booking.id}</strong></span>
                     <span>Time Slot ID: <strong>${booking.slotId}</strong></span>
-                    <span>Price: <strong>${app.formatCurrency(booking.price)}</strong></span>
+                    <span>Price: <strong>${app.formatCurrency(booking.price, booking.feeCurrency)}</strong></span>
                     <span>Scheduled Length: <strong>${formatDuration(booking.startTime, booking.endTime)}</strong></span>
                     <span>Notes: ${app.escapeHtml(booking.notes || "None")}</span>
                 </div>
@@ -582,10 +884,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div><span class="muted-label">Specialist ID</span><strong>${profile.id}</strong></div>
             <div><span class="muted-label">Name</span><strong>${app.escapeHtml(profile.fullName)}</strong></div>
             <div><span class="muted-label">Category</span><strong>${app.escapeHtml(profile.categoryName)}</strong></div>
-            <div><span class="muted-label">Level</span><strong>${profile.level}</strong></div>
-            <div><span class="muted-label">Base Fee</span><strong>${app.formatCurrency(profile.baseFee)}</strong></div>
+            <div><span class="muted-label">Professional Title / Certification</span><strong>${app.escapeHtml(profile.level)}</strong></div>
+            <div><span class="muted-label">Base Fee</span><strong>${app.formatCurrency(profile.baseFee, profile.feeCurrency)}</strong></div>
             <div><span class="muted-label">Status</span><strong>${profile.status}</strong></div>
-            <div><span class="muted-label">Bio</span><strong>${app.escapeHtml(profile.bio || "No bio available")}</strong></div>
+            <div><span class="muted-label">Notes</span><strong>${app.escapeHtml(profile.bio || "No notes available")}</strong></div>
         `;
     }
 
@@ -677,7 +979,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 <div class="meta-block">
                     <span>Booking ID: <strong>${booking.id}</strong></span>
                     <span>Time Slot ID: <strong>${booking.slotId}</strong></span>
-                    <span>Price: <strong>${app.formatCurrency(booking.price)}</strong></span>
+                    <span>Price: <strong>${app.formatCurrency(booking.price, booking.feeCurrency)}</strong></span>
                     <span>Scheduled Length: <strong>${formatDuration(booking.startTime, booking.endTime)}</strong></span>
                     <span>Notes: ${app.escapeHtml(booking.notes || "None")}</span>
                 </div>
@@ -735,12 +1037,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    function onRefreshSlotWindow() {
-        state.selectedSlotWindowStart = elements.slotStartDate.value || todayDateValue();
-        elements.slotStartDate.value = state.selectedSlotWindowStart;
-        reloadSelectedSlots();
-    }
-
     function onCustomerFilterChange(event) {
         const button = event.target.closest("[data-customer-filter]");
         if (!button) {
@@ -773,10 +1069,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.specialistFilterBar.querySelectorAll("[data-specialist-filter]").forEach((button) => {
             button.classList.toggle("active", button.dataset.specialistFilter === state.specialistStatusFilter);
         });
-    }
-
-    function buildSlotWindowUrl(specialistId) {
-        return `/api/slots/specialists/${specialistId}?fromDate=${state.selectedSlotWindowStart}&days=7`;
     }
 
     function buildCustomerBookingsUrl() {

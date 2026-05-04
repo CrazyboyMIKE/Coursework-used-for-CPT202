@@ -217,6 +217,17 @@ public class BookingService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<BookingDtos.BookingResponse> adminBookings(UserAccount admin, BookingStatus status) {
+        authService.ensureRole(admin, UserRole.ADMIN);
+        List<Booking> bookings = status == null
+                ? bookingRepository.findAllByOrderBySlotStartTimeDesc()
+                : bookingRepository.findByStatusOrderBySlotStartTimeDesc(status);
+        return bookings.stream()
+                .map(this::mapBooking)
+                .toList();
+    }
+
     public Booking getEntity(Long bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Booking not found"));
@@ -275,9 +286,14 @@ public class BookingService {
                 booking.getTopic(),
                 booking.getNotes(),
                 booking.getPrice(),
+                normalizeCurrency(booking.getSpecialist().getFeeCurrency()),
                 booking.getLastActionReason(),
                 booking.getCreatedAt(),
                 booking.getUpdatedAt()
         );
+    }
+
+    private String normalizeCurrency(String value) {
+        return "USD";
     }
 }

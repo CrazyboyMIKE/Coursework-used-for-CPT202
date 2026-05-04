@@ -65,11 +65,7 @@ public class AuthService {
     public AuthDtos.AuthResponse registerSpecialist(AuthDtos.SpecialistRegisterRequest request) {
         validateUniqueUser(request.username(), request.email());
 
-        ExpertiseCategory category = expertiseCategoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "Category not found"));
-        if (!category.isActive()) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, "Selected category is inactive");
-        }
+        ExpertiseCategory category = resolveOrCreateCategory(request.categoryName());
 
         UserAccount saved = userAccountRepository.save(buildUser(
                 request.username(),
@@ -83,10 +79,11 @@ public class AuthService {
         SpecialistProfile profile = new SpecialistProfile();
         profile.setUser(saved);
         profile.setCategory(category);
-        profile.setLevel(request.level());
+        profile.setLevel(cleanRequiredText(request.level(), "Professional title or certification is required"));
         profile.setBaseFee(request.baseFee());
+        profile.setFeeCurrency(normalizeCurrency(request.feeCurrency()));
         profile.setStatus(SpecialistStatus.ACTIVE);
-        profile.setBio(cleanText(request.bio()));
+        profile.setBio(cleanRequiredText(request.bio(), "Notes are required"));
         specialistProfileRepository.save(profile);
 
         return issueSession(saved);
@@ -255,6 +252,30 @@ public class AuthService {
 
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String cleanRequiredText(String value, String message) {
+        String cleaned = cleanText(value);
+        if (cleaned == null) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, message);
+        }
+        return cleaned;
+    }
+
+    private ExpertiseCategory resolveOrCreateCategory(String rawCategoryName) {
+        String categoryName = cleanRequiredText(rawCategoryName, "Category is required");
+        ExpertiseCategory category = expertiseCategoryRepository.findByNameIgnoreCase(categoryName)
+                .orElseGet(ExpertiseCategory::new);
+        category.setName(categoryName);
+        if (category.getDescription() == null || category.getDescription().isBlank()) {
+            category.setDescription("Created during specialist registration.");
+        }
+        category.setActive(true);
+        return expertiseCategoryRepository.save(category);
+    }
+
+    private String normalizeCurrency(String feeCurrency) {
+        return "USD";
     }
 
     private java.util.Optional<UserAccount> findUserByIdentifier(String identifier) {

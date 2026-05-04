@@ -14,11 +14,12 @@ The system supports:
 - Booking creation, confirmation, rejection, cancellation, rescheduling, and completion
 - Conflict prevention and status tracking
 - Admin reporting and record maintenance
+- Specialist base fees standardized to `USD`
 
 ## Tech Stack
 
 - Java 17
-- Spring Boot 3.3.5
+- Spring Boot 3.5.14
 - Spring Web
 - Spring Data JPA
 - Jakarta Validation
@@ -56,17 +57,42 @@ Legacy compatibility pages still exist for customer and specialist registration:
 - `customer-register.html`
 - `specialist-register.html`
 
+## Specialist Registration Model
+
+Specialist registration is now based on free-form professional profile data instead of a fixed level dropdown:
+
+- `Category` is entered as free text
+- If the category name does not already exist, the backend creates it automatically as an active category
+- `Professional Title or Certification` is entered as free text
+- `Registration Notes` are required
+- `Base Fee` is entered, stored, and displayed in `USD`
+
+The specialist profile stores:
+
+- category reference
+- free-text professional title or certification
+- base fee amount
+- settlement currency fixed to `USD`
+- public notes / profile summary
+
+Pricing currently follows this rule:
+
+- booking price = `base fee × slot duration`
+- weekend bookings apply a `1.15` multiplier
+
 ## Seeded Startup Data
 
 The application seeds this administrator account on startup when the active profile is not `test`:
 
 - Administrator username: `AdminGroup28`
-- Administrator password: `Group28_CPT204`
+- Administrator password: `Group28_CPT202`
 
 The application also ensures these initial categories exist:
 
 - `Career Coaching`
 - `Financial Advisory`
+
+Additional categories may also be created automatically during specialist registration when a new category name is submitted.
 
 ## Local MySQL Run
 
@@ -151,7 +177,7 @@ Docker Compose services:
 Docker Compose database credentials:
 
 - Root user: `root`
-- Root password: `root`
+- Root password: `Group28_CPT202`
 - App database: `consulting_booking`
 - App user: `booking_user`
 - App password: `booking_pass`
@@ -196,6 +222,19 @@ Base path:
 - `POST /api/auth/password-reset/request`
 - `POST /api/auth/password-reset/confirm`
 
+`POST /api/auth/register/specialist` expects:
+
+- `username`
+- `password`
+- `fullName`
+- `email`
+- `phone`
+- `categoryName`
+- `level`
+- `baseFee`
+- `feeCurrency` with fixed value `USD`
+- `bio`
+
 ### Users
 
 - `GET /api/users/me`
@@ -228,6 +267,11 @@ Search filters supported by `GET /api/specialists`:
 - `maxFee`
 - `availableAt`
 
+Notes:
+
+- `level` is now a free-text professional title or certification string
+- the search filter matches level text case-insensitively
+
 ### Time Slots
 
 - `GET /api/slots/specialists/{specialistId}`
@@ -249,6 +293,11 @@ Optional query parameters for `GET /api/slots/specialists/{specialistId}`:
 - `POST /api/bookings/{id}/complete`
 - `GET /api/bookings/me`
 - `GET /api/bookings/schedule`
+
+Booking responses include:
+
+- calculated `price`
+- inherited specialist `feeCurrency` fixed as `USD`
 
 ### Reporting
 
