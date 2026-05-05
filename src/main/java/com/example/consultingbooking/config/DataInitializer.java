@@ -28,6 +28,8 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration
 @Profile("!test")
@@ -56,24 +58,29 @@ public class DataInitializer {
             SessionTokenRepository sessionTokenRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             SpecialistProfileRepository specialistProfileRepository,
-            TimeSlotRepository timeSlotRepository
+            TimeSlotRepository timeSlotRepository,
+            PlatformTransactionManager transactionManager
     ) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+
         return args -> {
-            ensureAdminAccount(userAccountRepository);
-            ensureCustomerFixtures(userAccountRepository);
-            Map<String, ExpertiseCategory> categoryMap = new HashMap<>();
-            categoryMap.put("Financial Advisory", ensureCategory(expertiseCategoryRepository, "Financial Advisory", "Personal financial planning"));
-            categoryMap.put("Investment Advisory", ensureCategory(expertiseCategoryRepository, "Investment Advisory", "Investment planning, portfolio structure, and asset-allocation support"));
-            categoryMap.put("Legal Consulting", ensureCategory(expertiseCategoryRepository, "Legal Consulting", "Legal consultation, document review, and compliance guidance"));
-            purgeLegacySpecialistFixtures(
-                    userAccountRepository,
-                    bookingRepository,
-                    sessionTokenRepository,
-                    passwordResetTokenRepository,
-                    specialistProfileRepository,
-                    timeSlotRepository
-            );
-            ensureSpecialistFixtures(userAccountRepository, specialistProfileRepository, timeSlotRepository, categoryMap);
+            transactionTemplate.executeWithoutResult(status -> {
+                ensureAdminAccount(userAccountRepository);
+                ensureCustomerFixtures(userAccountRepository);
+                Map<String, ExpertiseCategory> categoryMap = new HashMap<>();
+                categoryMap.put("Financial Advisory", ensureCategory(expertiseCategoryRepository, "Financial Advisory", "Personal financial planning"));
+                categoryMap.put("Investment Advisory", ensureCategory(expertiseCategoryRepository, "Investment Advisory", "Investment planning, portfolio structure, and asset-allocation support"));
+                categoryMap.put("Legal Consulting", ensureCategory(expertiseCategoryRepository, "Legal Consulting", "Legal consultation, document review, and compliance guidance"));
+                purgeLegacySpecialistFixtures(
+                        userAccountRepository,
+                        bookingRepository,
+                        sessionTokenRepository,
+                        passwordResetTokenRepository,
+                        specialistProfileRepository,
+                        timeSlotRepository
+                );
+                ensureSpecialistFixtures(userAccountRepository, specialistProfileRepository, timeSlotRepository, categoryMap);
+            });
         };
     }
 
