@@ -1,5 +1,6 @@
 package com.example.consultingbooking.config;
 
+import com.example.consultingbooking.entity.Booking;
 import com.example.consultingbooking.entity.ExpertiseCategory;
 import com.example.consultingbooking.entity.SlotStatus;
 import com.example.consultingbooking.entity.SpecialistProfile;
@@ -7,16 +8,22 @@ import com.example.consultingbooking.entity.SpecialistStatus;
 import com.example.consultingbooking.entity.TimeSlot;
 import com.example.consultingbooking.entity.UserAccount;
 import com.example.consultingbooking.entity.UserRole;
+import com.example.consultingbooking.repository.BookingRepository;
 import com.example.consultingbooking.repository.ExpertiseCategoryRepository;
+import com.example.consultingbooking.repository.PasswordResetTokenRepository;
+import com.example.consultingbooking.repository.SessionTokenRepository;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.TimeSlotRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,45 +39,40 @@ public class DataInitializer {
     private static final String ADMIN_EMAIL = "admingroup28@consultbridge.local";
     private static final String ADMIN_PHONE = "1000000000";
     private static final String SPECIALIST_PASSWORD = "Specialist123!";
-    private static final List<SpecialistSeed> SPECIALIST_SEEDS = List.of(
-            new SpecialistSeed("specialist01", "Ava Morgan", "Career Coaching", "ICF Certified Career Coach", "USD", new BigDecimal("120.00"), "Supports career transitions and interview preparation."),
-            new SpecialistSeed("specialist02", "Ethan Brooks", "Financial Advisory", "Certified Financial Planner", "USD", new BigDecimal("150.00"), "Focuses on personal budgeting and financial planning."),
-            new SpecialistSeed("specialist03", "Sophia Bennett", "Business Strategy", "Senior Strategy Consultant", "USD", new BigDecimal("180.00"), "Advises startups on business model design and growth strategy."),
-            new SpecialistSeed("specialist04", "Liam Carter", "Academic Mentoring", "University Admissions Consultant", "USD", new BigDecimal("100.00"), "Guides students on study planning and application strategy."),
-            new SpecialistSeed("specialist05", "Olivia Foster", "Immigration Consulting", "Registered Immigration Adviser", "USD", new BigDecimal("210.00"), "Provides consultation on documentation preparation and visa process planning."),
-            new SpecialistSeed("specialist06", "Noah Simmons", "Leadership Development", "Executive Leadership Coach", "USD", new BigDecimal("230.00"), "Works with professionals on leadership growth and team communication."),
-            new SpecialistSeed("specialist07", "Mia Reynolds", "Career Coaching", "LinkedIn Branding Specialist", "USD", new BigDecimal("115.00"), "Helps clients build stronger profiles and job-search positioning."),
-            new SpecialistSeed("specialist08", "James Peterson", "Financial Advisory", "Investment Planning Adviser", "USD", new BigDecimal("175.00"), "Supports long-term personal investment planning for early professionals."),
-            new SpecialistSeed("specialist09", "Charlotte Hughes", "Business Strategy", "Operations Improvement Consultant", "USD", new BigDecimal("165.00"), "Specializes in process review and operational efficiency planning."),
-            new SpecialistSeed("specialist10", "Benjamin Ward", "Academic Mentoring", "Graduate Application Mentor", "USD", new BigDecimal("95.00"), "Supports graduate-school applications and personal statement refinement."),
-            new SpecialistSeed("specialist11", "Amelia Hayes", "Immigration Consulting", "Cross-border Mobility Consultant", "USD", new BigDecimal("220.00"), "Advises on mobility planning for skilled migration cases."),
-            new SpecialistSeed("specialist12", "Lucas Price", "Leadership Development", "People Management Trainer", "USD", new BigDecimal("205.00"), "Supports new managers with delegation, feedback, and team planning."),
-            new SpecialistSeed("specialist13", "Harper Cole", "Career Coaching", "Career Pivot Consultant", "USD", new BigDecimal("130.00"), "Works with mid-career professionals seeking industry transitions."),
-            new SpecialistSeed("specialist14", "Henry Russell", "Financial Advisory", "Retirement Planning Specialist", "USD", new BigDecimal("190.00"), "Focuses on retirement planning and long-term savings structure."),
-            new SpecialistSeed("specialist15", "Ella Powell", "Business Strategy", "Market Entry Consultant", "USD", new BigDecimal("240.00"), "Helps teams evaluate expansion and market-entry strategy."),
-            new SpecialistSeed("specialist16", "Alexander Perry", "Academic Mentoring", "Scholarship Application Coach", "USD", new BigDecimal("110.00"), "Supports scholarship strategy and interview readiness."),
-            new SpecialistSeed("specialist17", "Grace Long", "Immigration Consulting", "Documentation Review Specialist", "USD", new BigDecimal("160.00"), "Reviews application evidence and case preparation strategy."),
-            new SpecialistSeed("specialist18", "Daniel Ross", "Leadership Development", "Workplace Communication Coach", "USD", new BigDecimal("145.00"), "Helps clients strengthen communication and conflict-management skills."),
-            new SpecialistSeed("specialist19", "Chloe Murphy", "Career Coaching", "Resume and Interview Consultant", "USD", new BigDecimal("125.00"), "Provides practical coaching on resume design and mock interviews."),
-            new SpecialistSeed("specialist20", "Michael Cooper", "Business Strategy", "Product Growth Adviser", "USD", new BigDecimal("215.00"), "Supports product teams with positioning, growth, and roadmap thinking.")
+    private static final List<CustomerSeed> CUSTOMER_SEEDS = List.of(
+            new CustomerSeed("customer001", "Customer 001", "12345671001@gmail.com", "123456789001", "12345678001"),
+            new CustomerSeed("customer002", "Customer 002", "12345671002@gmail.com", "123456789002", "12345678002"),
+            new CustomerSeed("customer003", "Customer 003", "12345671003@gmail.com", "123456789003", "12345678003"),
+            new CustomerSeed("customer004", "Customer 004", "12345671004@gmail.com", "123456789004", "12345678004"),
+            new CustomerSeed("customer005", "Customer 005", "12345671005@gmail.com", "123456789005", "12345678005")
     );
+    private static final List<SpecialistSeed> SPECIALIST_SEEDS = buildSpecialistSeeds();
 
     @Bean
     CommandLineRunner seedDemoData(
             UserAccountRepository userAccountRepository,
             ExpertiseCategoryRepository expertiseCategoryRepository,
+            BookingRepository bookingRepository,
+            SessionTokenRepository sessionTokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
             SpecialistProfileRepository specialistProfileRepository,
             TimeSlotRepository timeSlotRepository
     ) {
         return args -> {
             ensureAdminAccount(userAccountRepository);
+            ensureCustomerFixtures(userAccountRepository);
             Map<String, ExpertiseCategory> categoryMap = new HashMap<>();
-            categoryMap.put("Career Coaching", ensureCategory(expertiseCategoryRepository, "Career Coaching", "Career planning and interview preparation"));
             categoryMap.put("Financial Advisory", ensureCategory(expertiseCategoryRepository, "Financial Advisory", "Personal financial planning"));
-            categoryMap.put("Business Strategy", ensureCategory(expertiseCategoryRepository, "Business Strategy", "Business model planning and operational strategy"));
-            categoryMap.put("Academic Mentoring", ensureCategory(expertiseCategoryRepository, "Academic Mentoring", "Study planning, admissions, and academic guidance"));
-            categoryMap.put("Immigration Consulting", ensureCategory(expertiseCategoryRepository, "Immigration Consulting", "Migration planning and document preparation support"));
-            categoryMap.put("Leadership Development", ensureCategory(expertiseCategoryRepository, "Leadership Development", "Leadership coaching and management capability building"));
+            categoryMap.put("Investment Advisory", ensureCategory(expertiseCategoryRepository, "Investment Advisory", "Investment planning, portfolio structure, and asset-allocation support"));
+            categoryMap.put("Legal Consulting", ensureCategory(expertiseCategoryRepository, "Legal Consulting", "Legal consultation, document review, and compliance guidance"));
+            purgeLegacySpecialistFixtures(
+                    userAccountRepository,
+                    bookingRepository,
+                    sessionTokenRepository,
+                    passwordResetTokenRepository,
+                    specialistProfileRepository,
+                    timeSlotRepository
+            );
             ensureSpecialistFixtures(userAccountRepository, specialistProfileRepository, timeSlotRepository, categoryMap);
         };
     }
@@ -88,6 +90,21 @@ public class DataInitializer {
         admin.setRole(UserRole.ADMIN);
         admin.setActive(true);
         userAccountRepository.save(admin);
+    }
+
+    private void ensureCustomerFixtures(UserAccountRepository userAccountRepository) {
+        for (CustomerSeed seed : CUSTOMER_SEEDS) {
+            UserAccount customer = userAccountRepository.findByUsernameIgnoreCase(seed.username())
+                    .orElseGet(UserAccount::new);
+            customer.setUsername(seed.username());
+            customer.setPassword(seed.password());
+            customer.setFullName(seed.fullName());
+            customer.setEmail(seed.email());
+            customer.setPhone(seed.phone());
+            customer.setRole(UserRole.CUSTOMER);
+            customer.setActive(true);
+            userAccountRepository.save(customer);
+        }
     }
 
     private ExpertiseCategory ensureCategory(
@@ -116,6 +133,33 @@ public class DataInitializer {
         }
     }
 
+    private void purgeLegacySpecialistFixtures(
+            UserAccountRepository userAccountRepository,
+            BookingRepository bookingRepository,
+            SessionTokenRepository sessionTokenRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            SpecialistProfileRepository specialistProfileRepository,
+            TimeSlotRepository timeSlotRepository
+    ) {
+        for (String username : specialistFixtureUsernamesToPurge()) {
+            userAccountRepository.findByUsernameIgnoreCase(username).ifPresent(user -> {
+                bookingRepository.deleteAll(bookingRepository.findBySpecialistUserIdOrderBySlotStartTimeAsc(user.getId()));
+                sessionTokenRepository.deleteByUserId(user.getId());
+                passwordResetTokenRepository.deleteByUserId(user.getId());
+
+                specialistProfileRepository.findByUserId(user.getId()).ifPresent(profile -> {
+                    List<TimeSlot> slots = timeSlotRepository.findBySpecialistIdOrderByStartTimeAsc(profile.getId());
+                    if (!slots.isEmpty()) {
+                        timeSlotRepository.deleteAll(slots);
+                    }
+                    specialistProfileRepository.delete(profile);
+                });
+
+                userAccountRepository.delete(user);
+            });
+        }
+    }
+
     private SpecialistProfile ensureSpecialistProfile(
             UserAccountRepository userAccountRepository,
             SpecialistProfileRepository specialistProfileRepository,
@@ -128,8 +172,8 @@ public class DataInitializer {
         specialistUser.setUsername(seed.username());
         specialistUser.setPassword(SPECIALIST_PASSWORD);
         specialistUser.setFullName(seed.fullName());
-        specialistUser.setEmail(seed.username() + "@consultbridge.local");
-        specialistUser.setPhone(String.format("1551000%04d", index + 1));
+        specialistUser.setEmail(seed.email());
+        specialistUser.setPhone(seed.phone());
         specialistUser.setRole(UserRole.SPECIALIST);
         specialistUser.setActive(true);
         specialistUser = userAccountRepository.save(specialistUser);
@@ -140,7 +184,7 @@ public class DataInitializer {
         profile.setCategory(categoryMap.get(seed.categoryName()));
         profile.setLevel(seed.level());
         profile.setBaseFee(seed.baseFee());
-        profile.setFeeCurrency("USD");
+        profile.setFeeCurrency(seed.feeCurrency());
         profile.setStatus(SpecialistStatus.ACTIVE);
         profile.setBio(seed.bio());
         return specialistProfileRepository.save(profile);
@@ -193,14 +237,126 @@ public class DataInitializer {
         return slotTime;
     }
 
+    private static List<SpecialistSeed> buildSpecialistSeeds() {
+        List<SpecialistSeed> seeds = new ArrayList<>();
+        String[] categories = {
+                "Financial Advisory",
+                "Investment Advisory",
+                "Legal Consulting"
+        };
+        String[] credentials = {
+                "CFP Certification",
+                "CFA Charterholder",
+                "JD",
+                "Series 7 License",
+                "Series 65 License",
+                "LLM in Corporate Law",
+                "ChFC Certification",
+                "FRM Part II Candidate",
+                "Bar Admission (New York)",
+                "CIMA Certification",
+                "CFA Level III Candidate",
+                "Bar Admission (California)",
+                "Retirement Income Certified Professional",
+                "CMT Level II",
+                "Solicitor Qualification (England and Wales)",
+                "Certified Private Wealth Advisor",
+                "CAIA Charterholder",
+                "Certificate in Contract Law",
+                "Series 66 License",
+                "Investment Adviser Representative License",
+                "LLM in Commercial Law",
+                "Accredited Estate Planner",
+                "Certificate in Securities Analysis",
+                "Bar Admission (Texas)",
+                "Certified Divorce Financial Analyst"
+        };
+        BigDecimal[] fees = {
+                new BigDecimal("145.00"),
+                new BigDecimal("185.00"),
+                new BigDecimal("240.00"),
+                new BigDecimal("155.00"),
+                new BigDecimal("190.00"),
+                new BigDecimal("255.00"),
+                new BigDecimal("165.00"),
+                new BigDecimal("205.00"),
+                new BigDecimal("235.00"),
+                new BigDecimal("175.00"),
+                new BigDecimal("210.00"),
+                new BigDecimal("245.00"),
+                new BigDecimal("170.00"),
+                new BigDecimal("215.00"),
+                new BigDecimal("260.00"),
+                new BigDecimal("195.00"),
+                new BigDecimal("225.00"),
+                new BigDecimal("250.00"),
+                new BigDecimal("180.00"),
+                new BigDecimal("220.00"),
+                new BigDecimal("265.00"),
+                new BigDecimal("200.00"),
+                new BigDecimal("230.00"),
+                new BigDecimal("270.00"),
+                new BigDecimal("205.00")
+        };
+        String[] bios = {
+                "Provides structured planning for savings, budgeting, and medium-term financial decisions.",
+                "Supports retail clients with portfolio planning and long-term investment conversations.",
+                "Offers legal consultation support for contract review, compliance preparation, and case planning."
+        };
+
+        for (int index = 0; index < 25; index++) {
+            int specialistNumber = index + 1;
+            String formattedNumber = String.format("%03d", specialistNumber);
+            String category = categories[index % categories.length];
+            String bio = bios[index % bios.length];
+
+            seeds.add(new SpecialistSeed(
+                    "specialist" + formattedNumber,
+                    "ABC" + formattedNumber,
+                    "specialist" + formattedNumber + "@exigenctcommunication.local",
+                    String.format("1669000%04d", specialistNumber),
+                    category,
+                    credentials[index],
+                    "USD",
+                    fees[index],
+                    bio
+            ));
+        }
+
+        return List.copyOf(seeds);
+    }
+
+    private static Set<String> specialistFixtureUsernamesToPurge() {
+        Set<String> usernames = new LinkedHashSet<>();
+
+        for (int number = 1; number <= 30; number++) {
+            usernames.add(String.format("specialist%02d", number));
+            usernames.add(String.format("specialist%03d", number));
+            usernames.add("specialist" + number);
+        }
+
+        return usernames;
+    }
+
     private record SpecialistSeed(
             String username,
             String fullName,
+            String email,
+            String phone,
             String categoryName,
             String level,
             String feeCurrency,
             BigDecimal baseFee,
             String bio
+    ) {
+    }
+
+    private record CustomerSeed(
+            String username,
+            String fullName,
+            String email,
+            String phone,
+            String password
     ) {
     }
 

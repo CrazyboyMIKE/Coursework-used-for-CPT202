@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workspace | Consultancy Booking Management Platform</title>
+    <title>Workspace | ExigenctCommunication</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="site-body dashboard-body">
@@ -12,10 +12,10 @@
 
 <header class="dashboard-header">
     <a class="brand" href="/">
-        <span class="brand-mark">CB</span>
+        <span class="brand-mark">EC</span>
         <span class="brand-copy">
-            <strong>ConsultBridge</strong>
-            <small>Consultancy Booking Platform</small>
+            <strong>ExigenctCommunication</strong>
+            <small>Communication Booking Platform</small>
         </span>
     </a>
 
@@ -33,17 +33,17 @@
     <section class="dashboard-banner">
         <div class="banner-copy">
             <p class="eyebrow">Operations Center</p>
-            <h1>Consultancy booking workspace</h1>
+            <h1>ExigenctCommunication workspace</h1>
             <p id="dashboard-subtitle">
                 Manage booking workflows, specialist schedules, and category configuration in one place.
             </p>
 
             <div class="anchor-strip">
-                <a id="anchor-directory" href="#directory">Specialist Directory</a>
                 <a href="#profile-panel">Profile Settings</a>
                 <a id="anchor-customer-directory" class="hidden" href="/customer-directory.html">Browse Specialists</a>
                 <a id="anchor-customer-bookings" class="hidden" href="/customer-booking.html">Booking Center</a>
-                <a id="anchor-specialist" class="hidden" href="#specialist-panel">Specialist Workspace</a>
+                <a id="anchor-specialist-directory" class="hidden" href="/specialist-directory.html">Specialist Directory</a>
+                <a id="anchor-specialist" class="hidden" href="#specialist-panel">Schedule & Bookings</a>
                 <a id="anchor-admin" class="hidden" href="#admin-panel">Admin Workspace</a>
             </div>
         </div>
@@ -72,11 +72,11 @@
         <aside class="workspace-sidebar">
             <div class="sidebar-card">
                 <h2>Module Navigation</h2>
-                <a id="side-directory" class="side-link" href="#directory">Specialist Directory</a>
                 <a class="side-link" href="#profile-panel">Profile Settings</a>
                 <a id="side-customer-directory" class="side-link hidden" href="/customer-directory.html">Browse Specialists</a>
                 <a id="side-customer-bookings" class="side-link hidden" href="/customer-booking.html">Booking Center</a>
-                <a id="side-specialist" class="side-link hidden" href="#specialist-panel">Specialist Workspace</a>
+                <a id="side-specialist-directory" class="side-link hidden" href="/specialist-directory.html">Specialist Directory</a>
+                <a id="side-specialist" class="side-link hidden" href="#specialist-panel">Schedule & Bookings</a>
                 <a id="side-admin" class="side-link hidden" href="#admin-panel">Admin Workspace</a>
             </div>
 
@@ -92,7 +92,7 @@
         </aside>
 
         <div class="workspace-main">
-            <section class="panel" id="directory">
+            <section class="panel hidden" id="directory">
                 <div class="panel-head">
                     <div>
                         <p class="eyebrow">Directory</p>
@@ -252,6 +252,9 @@
                     <div class="content-card">
                         <h3>Specialist Profile</h3>
                         <div class="meta-list" id="specialist-profile"></div>
+                        <div class="card-actions">
+                            <a class="button-link compact-link" href="/specialist-directory.html">Open Specialist Directory</a>
+                        </div>
                     </div>
 
                     <form class="content-card stack-form" id="slot-form">
@@ -269,6 +272,16 @@
                         </label>
                         <button type="submit">Create Slot</button>
                     </form>
+                </div>
+
+                <div class="content-card">
+                    <div class="card-head">
+                        <div>
+                            <h3>My Time Table</h3>
+                            <p class="panel-note">Published time slots for the next 14 days, including reserved appointments.</p>
+                        </div>
+                    </div>
+                    <div class="slot-list" id="specialist-slots"></div>
                 </div>
 
                 <div class="status-filter-bar specialist-filter-bar" id="specialist-filter-bar">

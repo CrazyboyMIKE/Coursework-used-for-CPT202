@@ -1,6 +1,6 @@
-# Consulting Booking System
+# ExigenctCommunication
 
-ConsultBridge is a consultancy booking management system built with `Maven + Spring Boot + MySQL`. The project includes both backend APIs and static frontend pages for customers, specialists, and administrators.
+ExigenctCommunication is a consultancy booking management system built with `Maven + Spring Boot + MySQL`. The project includes both backend APIs and static frontend pages for customers, specialists, and administrators.
 
 The system supports:
 
@@ -18,7 +18,7 @@ The system supports:
 
 ## Tech Stack
 
-- Java 17
+- Java 21
 - Spring Boot 3.5.14
 - Spring Web
 - Spring Data JPA

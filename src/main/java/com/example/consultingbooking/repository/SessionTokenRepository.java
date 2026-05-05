@@ -10,4 +10,6 @@ public interface SessionTokenRepository extends JpaRepository<SessionToken, Long
     Optional<SessionToken> findByTokenAndActiveTrue(String token);
 
     List<SessionToken> findByUserIdAndActiveTrue(Long userId);
+
+    void deleteByUserId(Long userId);
 }

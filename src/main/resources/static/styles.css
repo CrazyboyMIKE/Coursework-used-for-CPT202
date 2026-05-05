@@ -357,7 +357,7 @@ button:disabled {
 
 .landing-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.9fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 22px;
 }
 
@@ -382,14 +382,29 @@ button:disabled {
 }
 
 .hero-primary {
-    padding: 42px;
+    padding: clamp(30px, 4vw, 52px);
+    min-height: clamp(420px, 58vh, 640px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .hero-primary h1,
 .auth-story h1,
 .dashboard-banner h1 {
-    font-size: clamp(2.6rem, 4vw, 4.6rem);
+    font-size: clamp(2.9rem, 4.4vw, 5rem);
     margin: 12px 0 18px;
+}
+
+.hero-primary h1 {
+    max-width: min(100%, 22ch);
+    text-wrap: balance;
+}
+
+.hero-text {
+    max-width: min(100%, 64rem);
+    font-size: clamp(1.12rem, 1.45vw, 1.48rem);
+    line-height: 1.55;
 }
 
 .hero-text,
@@ -419,6 +434,7 @@ button:disabled {
     gap: 12px;
     flex-wrap: wrap;
     margin-top: 26px;
+    max-width: min(100%, 64rem);
 }
 
 .flow-strip span {
@@ -432,6 +448,7 @@ button:disabled {
 .hero-actions {
     flex-wrap: wrap;
     margin-top: 28px;
+    max-width: min(100%, 64rem);
 }
 
 .hero-secondary {
@@ -686,13 +703,23 @@ textarea {
 .dashboard-banner {
     padding: 28px;
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.95fr);
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.92fr);
     gap: 20px;
+    align-items: start;
 }
 
 .banner-copy {
     display: grid;
     gap: 16px;
+    min-width: 0;
+}
+
+.dashboard-banner h1 {
+    font-size: clamp(2.5rem, 3.7vw, 4.3rem);
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+    max-width: 11ch;
+    text-wrap: balance;
 }
 
 .banner-metrics {
@@ -1316,6 +1343,10 @@ textarea {
     .metric-value-contact {
         font-size: 1.08rem;
     }
+
+    .dashboard-banner h1 {
+        max-width: 100%;
+    }
 }
 
 @media (max-width: 560px) {
@@ -1323,6 +1354,10 @@ textarea {
     .auth-story h1,
     .dashboard-banner h1 {
         font-size: 2.2rem;
+    }
+
+    .dashboard-banner {
+        gap: 18px;
     }
 
     .brand-copy small {

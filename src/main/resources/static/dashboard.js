@@ -31,11 +31,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         anchorDirectory: document.getElementById("anchor-directory"),
         anchorCustomerDirectory: document.getElementById("anchor-customer-directory"),
         anchorCustomerBookings: document.getElementById("anchor-customer-bookings"),
+        anchorSpecialistDirectory: document.getElementById("anchor-specialist-directory"),
         anchorSpecialist: document.getElementById("anchor-specialist"),
         anchorAdmin: document.getElementById("anchor-admin"),
         sideDirectory: document.getElementById("side-directory"),
         sideCustomerDirectory: document.getElementById("side-customer-directory"),
         sideCustomerBookings: document.getElementById("side-customer-bookings"),
+        sideSpecialistDirectory: document.getElementById("side-specialist-directory"),
         sideSpecialist: document.getElementById("side-specialist"),
         sideAdmin: document.getElementById("side-admin"),
         directoryPanel: document.getElementById("directory"),
@@ -70,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         customerBookings: document.getElementById("customer-bookings"),
         specialistFilterBar: document.getElementById("specialist-filter-bar"),
         specialistProfile: document.getElementById("specialist-profile"),
+        specialistSlots: document.getElementById("specialist-slots"),
         specialistSchedule: document.getElementById("specialist-schedule"),
         summaryGrid: document.getElementById("summary-grid"),
         categoryList: document.getElementById("category-list"),
@@ -82,9 +85,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     startAutoRefresh();
 
     await loadCategories();
-    if (state.user.role !== "CUSTOMER") {
-        await searchSpecialists();
-    }
     await refreshRoleWorkspace();
 
     function bindEvents() {
@@ -129,13 +129,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         renderSpecialistFilterButtons();
 
         const isCustomer = state.user.role === "CUSTOMER";
-        toggleElementVisibility(!isCustomer, elements.directoryPanel);
-        toggleElementVisibility(!isCustomer, elements.anchorDirectory);
-        toggleElementVisibility(!isCustomer, elements.sideDirectory);
+        const isSpecialist = state.user.role === "SPECIALIST";
+        toggleElementVisibility(false, elements.directoryPanel);
+        toggleElementVisibility(false, elements.anchorDirectory);
+        toggleElementVisibility(false, elements.sideDirectory);
         toggleElementVisibility(isCustomer, elements.anchorCustomerDirectory);
         toggleElementVisibility(isCustomer, elements.anchorCustomerBookings);
         toggleElementVisibility(isCustomer, elements.sideCustomerDirectory);
         toggleElementVisibility(isCustomer, elements.sideCustomerBookings);
+        toggleElementVisibility(isSpecialist, elements.anchorSpecialistDirectory);
+        toggleElementVisibility(isSpecialist, elements.sideSpecialistDirectory);
         toggleElementVisibility(false, elements.customerPanel);
         toggleRoleVisibility(state.user.role === "SPECIALIST", elements.specialistPanel, elements.anchorSpecialist, elements.sideSpecialist);
         toggleRoleVisibility(state.user.role === "ADMIN", elements.adminPanel, elements.anchorAdmin, elements.sideAdmin);
@@ -169,7 +172,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return "You are signed in to your customer profile center. Use the dedicated directory and booking pages for searching specialists and managing appointments.";
         }
         if (role === "SPECIALIST") {
-            return "You are signed in as a specialist and can manage time slots and handle pending bookings.";
+            return "You are signed in as a specialist and can review your published timetable, create new slots, and manage booking requests.";
         }
         if (role === "ADMIN") {
             return "You are signed in as an administrator and can manage categories, accounts, specialist profiles, and summary metrics.";
@@ -206,7 +209,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
             renderSession();
             await refreshRoleWorkspace();
-            await searchSpecialists();
             app.showToast("Profile updated successfully.", "success", "toast");
         } catch (error) {
             app.showToast(error.message, "error", "toast");
@@ -866,6 +868,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             state.specialistProfile = await app.api("/api/specialists/me");
             renderSpecialistProfile();
+            const slots = await app.api(`/api/slots/specialists/${state.specialistProfile.id}?fromDate=${todayDateValue()}&days=14`);
+            renderSpecialistSlots(slots);
             const bookings = await app.api(buildSpecialistScheduleUrl());
             renderSpecialistSchedule(bookings);
         } catch (error) {
@@ -891,6 +895,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         `;
     }
 
+    function renderSpecialistSlots(slots) {
+        if (!state.specialistProfile) {
+            elements.specialistSlots.innerHTML = '<div class="empty-state">A specialist profile is required before timetable data can be shown.</div>';
+            return;
+        }
+
+        if (!slots.length) {
+            elements.specialistSlots.innerHTML = '<div class="empty-state">No time slots are currently published in the next 14 days.</div>';
+            return;
+        }
+
+        elements.specialistSlots.innerHTML = slots.map((slot) => `
+            <article class="slot-item ${slot.status !== "AVAILABLE" ? "slot-muted" : ""}">
+                <div class="card-head">
+                    <div>
+                        <strong>${app.formatDateTime(slot.startTime)} - ${app.formatDateTime(slot.endTime)}</strong>
+                        <p>${specialistSlotStatusNote(slot.status)}</p>
+                    </div>
+                    <span class="status-pill ${slot.status}">${slot.status}</span>
+                </div>
+                <div class="meta-block">
+                    <span>Time Slot ID: <strong>${slot.id}</strong></span>
+                    <span>Availability: <strong>${specialistSlotAvailability(slot.status)}</strong></span>
+                </div>
+            </article>
+        `).join("");
+    }
+
     async function onCreateSlot(event) {
         event.preventDefault();
         if (!state.specialistProfile) {
@@ -912,7 +944,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             form.reset();
             app.clearFormErrors(form);
             await refreshSpecialistWorkspace();
-            await searchSpecialists();
             app.showToast("Time slot created successfully.", "success", "toast");
         } catch (error) {
             app.renderFormErrors(form, error);
@@ -1018,7 +1049,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     body: JSON.stringify({ reason })
                 });
                 await refreshSpecialistWorkspace();
-                await searchSpecialists();
                 app.showToast("Booking rejected successfully.", "success", "toast");
             } catch (error) {
                 app.showToast(error.message, "error", "toast");
@@ -1163,6 +1193,26 @@ document.addEventListener("DOMContentLoaded", async () => {
             REJECTED: "No declined consultation requests are available in the current view."
         };
         return map[state.specialistStatusFilter] || "No consultations match the current specialist filter.";
+    }
+
+    function specialistSlotAvailability(status) {
+        if (status === "AVAILABLE") {
+            return "Open for booking";
+        }
+        if (status === "RESERVED") {
+            return "Reserved by an appointment";
+        }
+        return "Closed";
+    }
+
+    function specialistSlotStatusNote(status) {
+        if (status === "AVAILABLE") {
+            return "This slot is visible to customers and can still be booked.";
+        }
+        if (status === "RESERVED") {
+            return "This slot is currently tied to an active booking request or confirmed appointment.";
+        }
+        return "This slot is no longer available for booking.";
     }
 
     function formatDuration(startTime, endTime) {

@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const app = window.ProjectApp;
     const params = new URLSearchParams(window.location.search);
     const specialistId = Number(params.get("id"));
+    const currentUser = await app.requireAuth("/login.html");
 
     const elements = {
         title: document.getElementById("specialist-detail-title"),
@@ -9,8 +10,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         meta: document.getElementById("specialist-detail-meta"),
         notice: document.getElementById("specialist-detail-notice"),
         actions: document.getElementById("specialist-detail-actions"),
-        slots: document.getElementById("specialist-detail-slots")
+        slots: document.getElementById("specialist-detail-slots"),
+        navPrimary: document.getElementById("detail-nav-primary"),
+        navDirectory: document.getElementById("detail-nav-directory"),
+        navTertiary: document.getElementById("detail-nav-tertiary")
     };
+
+    if (!currentUser) {
+        return;
+    }
+
+    renderNavigation();
 
     if (!specialistId) {
         renderMissing("No specialist ID was provided in the page URL.");
@@ -62,9 +72,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         `;
 
         elements.actions.classList.remove("hidden");
-        elements.actions.innerHTML = specialist.status === "ACTIVE"
-                ? `<a class="button-link" href="/customer-booking.html?specialistId=${specialist.id}">Book This Specialist</a>`
-                : `<a class="secondary-link" href="/customer-directory.html">Back to Specialist Directory</a>`;
+        if (currentUser.role === "SPECIALIST") {
+            elements.actions.innerHTML = `<a class="secondary-link" href="/specialist-directory.html">Return to Specialist Directory</a>`;
+        } else {
+            elements.actions.innerHTML = specialist.status === "ACTIVE"
+                    ? `<a class="button-link" href="/customer-booking.html?specialistId=${specialist.id}">Book This Specialist</a>`
+                    : `<a class="secondary-link" href="/customer-directory.html">Back to Specialist Directory</a>`;
+        }
 
         const notices = [];
         if (specialist.status !== "ACTIVE") {
@@ -91,5 +105,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.notice.classList.add("hidden");
         elements.actions.classList.add("hidden");
         elements.slots.innerHTML = '<div class="empty-state">Time slot data is unavailable because the profile could not be loaded.</div>';
+    }
+
+    function renderNavigation() {
+        if (currentUser.role === "SPECIALIST") {
+            elements.navPrimary.textContent = "Profile Center";
+            elements.navPrimary.href = "/dashboard.html";
+            elements.navDirectory.href = "/specialist-directory.html";
+            elements.navTertiary.textContent = "Schedule & Bookings";
+            elements.navTertiary.href = "/dashboard.html#specialist-panel";
+            return;
+        }
+
+        elements.navPrimary.textContent = "Profile Center";
+        elements.navPrimary.href = "/dashboard.html";
+        elements.navDirectory.href = "/customer-directory.html";
+        elements.navTertiary.textContent = "Booking Center";
+        elements.navTertiary.href = "/customer-booking.html";
     }
 });
