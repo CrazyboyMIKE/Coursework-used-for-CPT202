@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Specialist Registration | ExigenctCommunication</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body auth-page" data-page="register-specialist">
+
+<header class="site-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">EC</span>
+        <span class="brand-copy">
+            <strong>ExigenctCommunication</strong>
+            <small>Communication Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav">
+        <a href="/">Home</a>
+        <a href="/register.html">Choose Role</a>
+        <a class="button-link" href="/login.html">Sign In</a>
+    </nav>
+</header>
+
+<main class="auth-shell">
+    <section class="auth-story">
+        <p class="eyebrow">Specialist Registration</p>
+        <h1>Set up your specialist profile</h1>
+        <p>
+            Specialist registration creates both the account and the specialist profile, so you can start managing availability, handling bookings, and maintaining profile information after sign-in.
+        </p>
+
+        <div class="story-card">
+            <strong>Profile details collected at registration</strong>
+            <ul class="story-list">
+                <li>Expertise category entered as free text for directory placement.</li>
+                <li>Professional title or certification entered in your own words.</li>
+                <li>Base fee entered and stored in USD.</li>
+                <li>Registration notes required for the public specialist profile.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="auth-card">
+        <div class="auth-card-top">
+            <p class="eyebrow">Specialist Account</p>
+            <h2>Create your specialist profile</h2>
+            <p>Enter your category, professional title, USD base fee, and required profile notes to create a visible specialist account.</p>
+        </div>
+
+        <form id="specialist-register-form" class="stack-form">
+            <div class="form-error hidden" data-form-error></div>
+            <label>
+                <span>Username</span>
+                <input name="username" type="text" autocomplete="username" required>
+                <small class="field-error" data-error-for="username"></small>
+            </label>
+            <label>
+                <span>Password</span>
+                <input name="password" type="password" minlength="6" autocomplete="new-password" required>
+                <small class="field-error" data-error-for="password"></small>
+            </label>
+            <label>
+                <span>Full Name</span>
+                <input name="fullName" type="text" autocomplete="name" required>
+                <small class="field-error" data-error-for="fullName"></small>
+            </label>
+            <label>
+                <span>Email</span>
+                <input name="email" type="email" autocomplete="email" required>
+                <small class="field-error" data-error-for="email"></small>
+            </label>
+            <label>
+                <span>Phone</span>
+                <input name="phone" type="text" autocomplete="tel">
+                <small class="field-error" data-error-for="phone"></small>
+            </label>
+            <label>
+                <span>Category</span>
+                <input id="specialist-category" name="categoryName" type="text" maxlength="80" placeholder="Enter your expertise category" required>
+                <small class="field-error" data-error-for="categoryName"></small>
+            </label>
+            <label>
+                <span>Professional Title or Certification</span>
+                <input name="level" type="text" maxlength="120" placeholder="For example: Licensed Career Coach, CFA, Senior Consultant" required>
+                <small class="field-error" data-error-for="level"></small>
+            </label>
+            <label>
+                <span>Base Fee</span>
+                <input name="baseFee" type="number" min="0" step="0.01" placeholder="Enter your base fee in USD" required>
+                <input name="feeCurrency" type="hidden" value="USD">
+                <small class="field-error" data-error-for="baseFee"></small>
+            </label>
+            <label>
+                <span>Registration Notes</span>
+                <textarea name="bio" rows="4" placeholder="Describe your expertise, credentials, consulting focus, and service background" required></textarea>
+                <small class="field-error" data-error-for="bio"></small>
+            </label>
+            <button type="submit">Create Specialist Account</button>
+        </form>
+
+        <div class="auth-footer">
+            <span>Need the customer path instead?</span>
+            <a href="/register-customer.html">Go to customer registration</a>
+        </div>
+    </section>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/auth.js"></script>
+</body>
+</html>

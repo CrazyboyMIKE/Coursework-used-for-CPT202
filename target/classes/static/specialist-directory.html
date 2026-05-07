@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Specialist Directory | ExigenctCommunication</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body dashboard-body">
+
+<header class="dashboard-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">EC</span>
+        <span class="brand-copy">
+            <strong>ExigenctCommunication</strong>
+            <small>Communication Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav dashboard-nav workspace-nav">
+        <a class="workspace-nav-pill" href="/dashboard.html">Profile Center</a>
+        <a class="workspace-nav-pill active" href="/specialist-directory.html" aria-current="page">Specialist Directory</a>
+        <a class="workspace-nav-pill" href="/dashboard.html#specialist-panel">Schedule & Bookings</a>
+    </nav>
+
+    <div class="account-panel">
+        <div class="account-meta">
+            <span class="muted-label">Signed In As</span>
+            <strong id="header-full-name">-</strong>
+        </div>
+        <span class="role-pill" id="header-role">-</span>
+        <button id="logout-button" class="ghost-button" type="button">Sign Out</button>
+    </div>
+</header>
+
+<main class="dashboard-main">
+    <section class="section-block">
+        <div class="section-heading">
+            <p class="eyebrow">Specialist Directory</p>
+            <h1>Review specialist profiles</h1>
+            <p class="panel-note">Review peer specialists by category, professional title or certification, fee range, and published availability.</p>
+        </div>
+
+        <form class="filter-form" id="specialist-search-form">
+            <label>
+                <span>Search Term</span>
+                <input id="search-keyword" type="text" placeholder="Name, category, or expertise">
+            </label>
+            <label>
+                <span>Category</span>
+                <select id="search-category">
+                    <option value="">All Categories</option>
+                </select>
+            </label>
+            <label>
+                <span>Professional Title or Certification</span>
+                <input id="search-level" type="text" placeholder="For example: CFA, Senior Consultant">
+            </label>
+            <label>
+                <span>Minimum Fee</span>
+                <input id="search-min-fee" type="number" min="0" step="0.01" placeholder="No minimum">
+            </label>
+            <label>
+                <span>Maximum Fee</span>
+                <input id="search-max-fee" type="number" min="0" step="0.01" placeholder="No maximum">
+            </label>
+            <label>
+                <span>Available At</span>
+                <input id="search-available-at" type="datetime-local">
+            </label>
+            <button type="submit">Filter</button>
+        </form>
+
+        <div id="specialist-results" class="card-grid"></div>
+    </section>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/specialist-directory.js"></script>
+</body>
+</html>

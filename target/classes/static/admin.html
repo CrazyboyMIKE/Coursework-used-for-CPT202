@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Overview | ExigenctCommunication</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="site-body dashboard-body admin-body">
+
+<header class="dashboard-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">EC</span>
+        <span class="brand-copy">
+            <strong>ExigenctCommunication</strong>
+            <small>Communication Booking Platform</small>
+        </span>
+    </a>
+
+    <nav class="site-nav dashboard-nav workspace-nav admin-nav">
+        <a class="workspace-nav-pill active" href="/admin.html" aria-current="page">Overview</a>
+        <a class="workspace-nav-pill" href="/admin-users.html">User Management</a>
+        <a class="workspace-nav-pill" href="/admin-specialists.html">Specialist Management</a>
+        <a class="workspace-nav-pill" href="/admin-bookings.html">Booking Management</a>
+        <a class="workspace-nav-pill" href="/admin-categories.html">Category Management</a>
+    </nav>
+
+    <div class="account-panel">
+        <div class="account-meta">
+            <span class="muted-label">Signed In As</span>
+            <strong id="header-full-name">-</strong>
+        </div>
+        <span class="role-pill" id="header-role">ADMIN</span>
+        <button id="logout-button" class="ghost-button" type="button">Sign Out</button>
+    </div>
+</header>
+
+<main class="dashboard-main">
+    <section class="dashboard-banner">
+        <div class="banner-copy">
+            <p class="eyebrow">Admin Control</p>
+            <h1>Platform operations overview</h1>
+            <p id="admin-subtitle">
+                Monitor platform activity and move directly into the user, specialist, booking, or category modules.
+            </p>
+
+            <div class="anchor-strip">
+                <a href="#summary-panel">Summary</a>
+                <a href="#admin-modules">Management Modules</a>
+            </div>
+        </div>
+
+        <div class="banner-metrics">
+            <article class="metric-card">
+                <span>Total Users</span>
+                <strong id="metric-users">0</strong>
+            </article>
+            <article class="metric-card">
+                <span>Total Specialists</span>
+                <strong id="metric-specialists">0</strong>
+            </article>
+            <article class="metric-card">
+                <span>Total Categories</span>
+                <strong id="metric-categories">0</strong>
+            </article>
+            <article class="metric-card">
+                <span>Total Bookings</span>
+                <strong id="metric-bookings">0</strong>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel" id="summary-panel">
+        <div class="panel-head">
+            <div>
+                <p class="eyebrow">Overview</p>
+                <h2>Operational Summary</h2>
+            </div>
+            <button class="ghost-button" id="refresh-admin-data" type="button">Refresh Overview</button>
+        </div>
+
+        <div class="stats-grid" id="summary-grid"></div>
+    </section>
+
+    <section class="panel" id="admin-modules">
+        <div class="panel-head">
+            <div>
+                <p class="eyebrow">Admin Modules</p>
+                <h2>Choose a Management Area</h2>
+            </div>
+            <p class="panel-note">Each module has its own page so administrative work stays clearer and easier to maintain.</p>
+        </div>
+
+        <div class="choice-grid admin-shortcut-grid">
+            <article class="choice-card admin-shortcut-card">
+                <div>
+                    <h3>User Management</h3>
+                    <p>Review customer, specialist, and administrator accounts, then update account details and access status.</p>
+                </div>
+                <div class="card-actions">
+                    <a class="primary-link" href="/admin-users.html">Open User Management</a>
+                </div>
+            </article>
+
+            <article class="choice-card admin-shortcut-card">
+                <div>
+                    <h3>Specialist Management</h3>
+                    <p>Create specialist profiles, edit professional information, and keep public specialist records accurate.</p>
+                </div>
+                <div class="card-actions">
+                    <a class="primary-link" href="/admin-specialists.html">Open Specialist Management</a>
+                </div>
+            </article>
+
+            <article class="choice-card admin-shortcut-card">
+                <div>
+                    <h3>Booking Management</h3>
+                    <p>Review bookings across all statuses and apply administrative actions to pending or confirmed consultations.</p>
+                </div>
+                <div class="card-actions">
+                    <a class="primary-link" href="/admin-bookings.html">Open Booking Management</a>
+                </div>
+            </article>
+
+            <article class="choice-card admin-shortcut-card">
+                <div>
+                    <h3>Category Management</h3>
+                    <p>Maintain the specialist category master data used in registration, search, and booking workflows.</p>
+                </div>
+                <div class="card-actions">
+                    <a class="primary-link" href="/admin-categories.html">Open Category Management</a>
+                </div>
+            </article>
+        </div>
+    </section>
+</main>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/common.js"></script>
+<script src="/admin.js"></script>
+</body>
+</html>
