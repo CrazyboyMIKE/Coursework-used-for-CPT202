@@ -270,27 +270,20 @@ button,
     box-shadow: none;
 }
 
-.site-nav .nav-pill-signin,
+.nav-pill-signin,
+.nav-pill-admin,
+.nav-pill-specialist,
 .site-nav a.workspace-nav-pill.active,
 .site-nav a.workspace-nav-pill[aria-current="page"] {
-    color: var(--surface-strong);
-    background: var(--brand);
-    border-color: var(--brand);
-    box-shadow: var(--shadow-sm);
-}
-
-.site-nav .nav-pill-signin:hover {
     color: var(--surface-strong);
     background: var(--brand-deep);
     border-color: var(--brand-deep);
 }
 
-.site-nav .nav-pill-customer,
-.site-nav .nav-pill-specialist,
-.site-nav .nav-pill-admin {
+.nav-pill-customer {
     color: var(--brand-deep);
     background: var(--brand-soft);
-    border-color: #c5dbd1;
+    border-color: #bfd7cd;
 }
 
 .admin-nav {
@@ -776,21 +769,12 @@ textarea:focus {
 
 .management-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.9fr);
     gap: 20px;
 }
 
 .management-grid.wide-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.admin-create-panel {
-    margin-bottom: 20px;
-}
-
-.editor-card {
-    align-content: start;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1fr);
 }
 
 .management-card {

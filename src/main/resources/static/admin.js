@@ -383,7 +383,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        document.getElementById("edit-specialist-full-name").value = profile.fullName || "";
         document.getElementById("edit-specialist-id").value = String(profile.id);
         document.getElementById("edit-specialist-user-id").value = String(profile.userId);
         document.getElementById("edit-specialist-category").value = String(profile.categoryId);
