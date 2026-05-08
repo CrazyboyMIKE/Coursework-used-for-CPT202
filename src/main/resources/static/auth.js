@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         "reset-password"
     ]);
 
+    bindPageHandlers();
+    app.consumeFlash("toast");
+
     if (publicPages.has(page)) {
         const redirected = await app.redirectIfAuthenticated();
         if (redirected) {
@@ -17,22 +20,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    app.consumeFlash("toast");
+    function bindPageHandlers() {
+        if (page === "login") {
+            document.getElementById("login-form").addEventListener("submit", onLogin);
+        }
 
-    if (page === "login") {
-        document.getElementById("login-form").addEventListener("submit", onLogin);
-    }
+        if (page === "register-customer") {
+            document.getElementById("customer-register-form").addEventListener("submit", (event) =>
+                    onRegister(event, "/api/auth/register/customer", "Create Account")
+            );
+        }
 
-    if (page === "register-customer") {
-        document.getElementById("customer-register-form").addEventListener("submit", (event) =>
-                onRegister(event, "/api/auth/register/customer", "Create Account")
-        );
-    }
+        if (page === "register-specialist") {
+            document.getElementById("specialist-register-form").addEventListener("submit", (event) =>
+                    onRegister(event, "/api/auth/register/specialist", "Create Specialist Account", normalizeSpecialistPayload)
+            );
+        }
 
-    if (page === "register-specialist") {
-        document.getElementById("specialist-register-form").addEventListener("submit", (event) =>
-                onRegister(event, "/api/auth/register/specialist", "Create Specialist Account", normalizeSpecialistPayload)
-        );
+        if (page === "change-password") {
+            document.getElementById("change-password-form").addEventListener("submit", onChangePassword);
+        }
+
+        if (page === "forgot-password") {
+            document.getElementById("forgot-password-form").addEventListener("submit", onForgotPassword);
+        }
+
+        if (page === "reset-password") {
+            document.getElementById("reset-password-form").addEventListener("submit", onResetPassword);
+        }
     }
 
     if (page === "change-password") {
@@ -40,15 +55,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!user) {
             return;
         }
-        document.getElementById("change-password-form").addEventListener("submit", onChangePassword);
-    }
-
-    if (page === "forgot-password") {
-        document.getElementById("forgot-password-form").addEventListener("submit", onForgotPassword);
-    }
-
-    if (page === "reset-password") {
-        document.getElementById("reset-password-form").addEventListener("submit", onResetPassword);
     }
 
     async function onLogin(event) {

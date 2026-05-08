@@ -1,6 +1,7 @@
 package com.example.consultingbooking.config;
 
 import com.example.consultingbooking.entity.Booking;
+import com.example.consultingbooking.entity.BookingStatus;
 import com.example.consultingbooking.entity.ExpertiseCategory;
 import com.example.consultingbooking.entity.SlotStatus;
 import com.example.consultingbooking.entity.SpecialistProfile;
@@ -54,6 +55,18 @@ public class DataInitializer {
             new CustomerSeed("customer010", "Customer 010", "12345671010@gmail.com", "123456789010", "12345678010")
     );
     private static final List<SpecialistSeed> SPECIALIST_SEEDS = buildSpecialistSeeds();
+    private static final List<BookingSeed> BOOKING_SEEDS = List.of(
+            new BookingSeed("customer001", "specialist001", BookingStatus.PENDING, "Seed Booking 01 - Pending", "Customer is waiting for specialist confirmation.", "Booking created"),
+            new BookingSeed("customer002", "specialist002", BookingStatus.CONFIRMED, "Seed Booking 02 - Confirmed", "Specialist has accepted the consultation.", "Booking confirmed"),
+            new BookingSeed("customer003", "specialist003", BookingStatus.CANCELLED, "Seed Booking 03 - Cancelled", "Customer cancelled this consultation.", "Booking cancelled"),
+            new BookingSeed("customer004", "specialist004", BookingStatus.COMPLETED, "Seed Booking 04 - Completed", "Consultation was completed successfully.", "Booking completed"),
+            new BookingSeed("customer005", "specialist005", BookingStatus.REJECTED, "Seed Booking 05 - Rejected", "Specialist rejected this request.", "Booking rejected"),
+            new BookingSeed("customer006", "specialist006", BookingStatus.PENDING, "Seed Booking 06 - Pending", "Second pending request for list and filter testing.", "Booking created"),
+            new BookingSeed("customer007", "specialist007", BookingStatus.CONFIRMED, "Seed Booking 07 - Confirmed", "Second confirmed consultation for list testing.", "Booking confirmed"),
+            new BookingSeed("customer008", "specialist008", BookingStatus.CANCELLED, "Seed Booking 08 - Cancelled", "Second cancelled consultation for list testing.", "Booking cancelled"),
+            new BookingSeed("customer009", "specialist009", BookingStatus.COMPLETED, "Seed Booking 09 - Completed", "Second completed consultation for list testing.", "Booking completed"),
+            new BookingSeed("customer010", "specialist010", BookingStatus.REJECTED, "Seed Booking 10 - Rejected", "Second rejected request for list testing.", "Booking rejected")
+    );
 
     @Bean
     CommandLineRunner seedDemoData(
@@ -85,6 +98,7 @@ public class DataInitializer {
                         timeSlotRepository
                 );
                 ensureSpecialistFixtures(userAccountRepository, specialistProfileRepository, timeSlotRepository, categoryMap);
+                ensureBookingFixtures(userAccountRepository, specialistProfileRepository, timeSlotRepository, bookingRepository);
             });
         };
     }
@@ -230,6 +244,65 @@ public class DataInitializer {
         }
     }
 
+    private void ensureBookingFixtures(
+            UserAccountRepository userAccountRepository,
+            SpecialistProfileRepository specialistProfileRepository,
+            TimeSlotRepository timeSlotRepository,
+            BookingRepository bookingRepository
+    ) {
+        for (int index = 0; index < BOOKING_SEEDS.size(); index++) {
+            BookingSeed seed = BOOKING_SEEDS.get(index);
+            UserAccount customer = userAccountRepository.findByUsernameIgnoreCase(seed.customerUsername())
+                    .orElseThrow(() -> new IllegalStateException("Missing seeded customer " + seed.customerUsername()));
+            UserAccount specialistUser = userAccountRepository.findByUsernameIgnoreCase(seed.specialistUsername())
+                    .orElseThrow(() -> new IllegalStateException("Missing seeded specialist " + seed.specialistUsername()));
+            SpecialistProfile specialist = specialistProfileRepository.findByUserId(specialistUser.getId())
+                    .orElseThrow(() -> new IllegalStateException("Missing seeded specialist profile " + seed.specialistUsername()));
+
+            TimeSlot slot = new TimeSlot();
+            slot.setSpecialist(specialist);
+            slot.setStartTime(seedBookingStartTime(index, seed.status()));
+            slot.setEndTime(slot.getStartTime().plusHours(1));
+            slot.setStatus(slotStatusForBooking(seed.status()));
+            slot = timeSlotRepository.save(slot);
+
+            Booking booking = new Booking();
+            booking.setCustomer(customer);
+            booking.setSpecialist(specialist);
+            booking.setSlot(slot);
+            booking.setStatus(seed.status());
+            booking.setTopic(seed.topic());
+            booking.setNotes(seed.notes());
+            booking.setPrice(specialist.getBaseFee());
+            booking.setLastActionReason(seed.lastActionReason());
+            bookingRepository.save(booking);
+        }
+    }
+
+    private LocalDateTime seedBookingStartTime(int index, BookingStatus status) {
+        int dayOffset = status == BookingStatus.COMPLETED ? -(index + 7) : index + 35;
+        LocalDateTime slotTime = LocalDateTime.now()
+                .plusDays(dayOffset)
+                .withHour(10 + (index % 5))
+                .withMinute(0)
+                .withSecond(0)
+                .withNano(0);
+
+        while (slotTime.getDayOfWeek() == DayOfWeek.SATURDAY || slotTime.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            slotTime = status == BookingStatus.COMPLETED ? slotTime.minusDays(1) : slotTime.plusDays(1);
+        }
+
+        return slotTime;
+    }
+
+    private SlotStatus slotStatusForBooking(BookingStatus status) {
+        return switch (status) {
+            case PENDING, CONFIRMED -> SlotStatus.RESERVED;
+            case COMPLETED -> SlotStatus.CLOSED;
+            case CANCELLED, REJECTED -> SlotStatus.AVAILABLE;
+        };
+    }
+
     private LocalDateTime nextBusinessSlot(int daysAhead, int hour) {
         LocalDateTime slotTime = LocalDateTime.now()
                 .plusDays(daysAhead)
@@ -369,6 +442,16 @@ public class DataInitializer {
             String email,
             String phone,
             String password
+    ) {
+    }
+
+    private record BookingSeed(
+            String customerUsername,
+            String specialistUsername,
+            BookingStatus status,
+            String topic,
+            String notes,
+            String lastActionReason
     ) {
     }
 
