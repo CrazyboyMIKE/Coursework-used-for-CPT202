@@ -89,8 +89,16 @@ The application seeds this administrator account on startup when the active prof
 
 The application also ensures these initial categories exist:
 
-- `Career Coaching`
 - `Financial Advisory`
+- `Investment Advisory`
+- `Legal Consulting`
+
+The default demo data also includes:
+
+- `10` customer accounts: `customer001` to `customer010`
+- `20` specialist accounts: `specialist001` to `specialist020`
+- Customer passwords: `12345678001` to `12345678010`
+- Specialist password: `Specialist123!`
 
 Additional categories may also be created automatically during specialist registration when a new category name is submitted.
 

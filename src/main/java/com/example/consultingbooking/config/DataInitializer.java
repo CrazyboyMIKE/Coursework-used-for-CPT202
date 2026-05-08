@@ -46,7 +46,12 @@ public class DataInitializer {
             new CustomerSeed("customer002", "Customer 002", "12345671002@gmail.com", "123456789002", "12345678002"),
             new CustomerSeed("customer003", "Customer 003", "12345671003@gmail.com", "123456789003", "12345678003"),
             new CustomerSeed("customer004", "Customer 004", "12345671004@gmail.com", "123456789004", "12345678004"),
-            new CustomerSeed("customer005", "Customer 005", "12345671005@gmail.com", "123456789005", "12345678005")
+            new CustomerSeed("customer005", "Customer 005", "12345671005@gmail.com", "123456789005", "12345678005"),
+            new CustomerSeed("customer006", "Customer 006", "12345671006@gmail.com", "123456789006", "12345678006"),
+            new CustomerSeed("customer007", "Customer 007", "12345671007@gmail.com", "123456789007", "12345678007"),
+            new CustomerSeed("customer008", "Customer 008", "12345671008@gmail.com", "123456789008", "12345678008"),
+            new CustomerSeed("customer009", "Customer 009", "12345671009@gmail.com", "123456789009", "12345678009"),
+            new CustomerSeed("customer010", "Customer 010", "12345671010@gmail.com", "123456789010", "12345678010")
     );
     private static final List<SpecialistSeed> SPECIALIST_SEEDS = buildSpecialistSeeds();
 
@@ -311,7 +316,7 @@ public class DataInitializer {
                 "Offers legal consultation support for contract review, compliance preparation, and case planning."
         };
 
-        for (int index = 0; index < 25; index++) {
+        for (int index = 0; index < 20; index++) {
             int specialistNumber = index + 1;
             String formattedNumber = String.format("%03d", specialistNumber);
             String category = categories[index % categories.length];
