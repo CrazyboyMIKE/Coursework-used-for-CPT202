@@ -60,14 +60,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function onLogin(event) {
         event.preventDefault();
         const form = event.currentTarget;
-        const button = form.querySelector("button");
         const payload = app.formToObject(form);
 
         app.clearFormErrors(form);
-        button.disabled = true;
-        button.textContent = "Signing in...";
-
-        try {
+        await app.withFormLoading(form, "Signing in...", async () => {
             const session = await app.api("/api/auth/login", {
                 method: "POST",
                 body: JSON.stringify(payload)
@@ -75,25 +71,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             app.setToken(session.token);
             app.queueFlash("Sign-in successful.", "success");
             window.location.replace(app.workspacePathForRole(session.role));
-        } catch (error) {
-            app.renderFormErrors(form, error);
-        } finally {
-            button.disabled = false;
-            button.textContent = "Sign In";
-        }
+        }).catch((error) => app.renderFormErrors(form, error, "Unable to sign in. Please check your account details."));
     }
 
     async function onRegister(event, endpoint, resetLabel, transform = (payload) => payload) {
         event.preventDefault();
         const form = event.currentTarget;
-        const button = form.querySelector("button");
         const payload = transform(app.formToObject(form));
 
         app.clearFormErrors(form);
-        button.disabled = true;
-        button.textContent = "Registering...";
-
-        try {
+        await app.withFormLoading(form, "Registering...", async () => {
             await app.api(endpoint, {
                 method: "POST",
                 body: JSON.stringify(payload)
@@ -101,18 +88,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             app.clearSession();
             app.queueFlash("Registration successful. Please sign in with your new account.", "success");
             window.location.replace("/login.html");
-        } catch (error) {
-            app.renderFormErrors(form, error);
-        } finally {
-            button.disabled = false;
-            button.textContent = resetLabel;
-        }
+        }).catch((error) => app.renderFormErrors(form, error, "Unable to create the account. Please review the form."));
     }
 
     async function onChangePassword(event) {
         event.preventDefault();
         const form = event.currentTarget;
-        const button = form.querySelector("button");
         const payload = app.formToObject(form);
 
         if (!validatePasswordConfirmation(form, payload.newPassword, payload.confirmPassword, "confirmPassword")) {
@@ -120,10 +101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         app.clearFormErrors(form);
-        button.disabled = true;
-        button.textContent = "Saving...";
-
-        try {
+        await app.withFormLoading(form, "Saving...", async () => {
             await app.api("/api/auth/change-password", {
                 method: "POST",
                 body: JSON.stringify({
@@ -134,28 +112,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             app.clearSession();
             app.queueFlash("Password updated successfully. Please sign in again.", "success");
             window.location.replace("/login.html");
-        } catch (error) {
-            app.renderFormErrors(form, error);
-        } finally {
-            button.disabled = false;
-            button.textContent = "Save Password";
-        }
+        }).catch((error) => app.renderFormErrors(form, error, "Unable to change the password. Please review the form."));
     }
 
     async function onForgotPassword(event) {
         event.preventDefault();
         const form = event.currentTarget;
-        const button = form.querySelector("button");
         const panel = document.getElementById("reset-code-panel");
         const codeValue = document.getElementById("reset-code-value");
         const expiry = document.getElementById("reset-code-expiry");
 
         app.clearFormErrors(form);
         panel.classList.add("hidden");
-        button.disabled = true;
-        button.textContent = "Generating...";
-
-        try {
+        await app.withFormLoading(form, "Generating...", async () => {
             const response = await app.api("/api/auth/password-reset/request", {
                 method: "POST",
                 body: JSON.stringify(app.formToObject(form))
@@ -167,18 +136,12 @@ document.addEventListener("DOMContentLoaded", async () => {
                 panel.classList.remove("hidden");
             }
             app.showToast(response.message, "success", "toast");
-        } catch (error) {
-            app.renderFormErrors(form, error);
-        } finally {
-            button.disabled = false;
-            button.textContent = "Generate Reset Code";
-        }
+        }).catch((error) => app.renderFormErrors(form, error, "Unable to generate a reset code. Please review the form."));
     }
 
     async function onResetPassword(event) {
         event.preventDefault();
         const form = event.currentTarget;
-        const button = form.querySelector("button");
         const payload = app.formToObject(form);
 
         if (!validatePasswordConfirmation(form, payload.newPassword, payload.confirmPassword, "confirmPassword")) {
@@ -186,10 +149,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         app.clearFormErrors(form);
-        button.disabled = true;
-        button.textContent = "Resetting...";
-
-        try {
+        await app.withFormLoading(form, "Resetting...", async () => {
             await app.api("/api/auth/password-reset/confirm", {
                 method: "POST",
                 body: JSON.stringify({
@@ -200,12 +160,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             app.clearSession();
             app.queueFlash("Password reset completed. Please sign in with the new password.", "success");
             window.location.replace("/login.html");
-        } catch (error) {
-            app.renderFormErrors(form, error);
-        } finally {
-            button.disabled = false;
-            button.textContent = "Reset Password";
-        }
+        }).catch((error) => app.renderFormErrors(form, error, "Unable to reset the password. Please review the form."));
     }
 
     function normalizeSpecialistPayload(payload) {

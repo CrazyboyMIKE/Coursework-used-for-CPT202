@@ -47,7 +47,9 @@
             const message = data && typeof data === "object" ? data.message : null;
             const error = new Error(message || "Request failed");
             error.status = response.status;
+            error.code = data && typeof data === "object" && data.code ? data.code : "";
             error.fieldErrors = data && typeof data === "object" && data.fieldErrors ? data.fieldErrors : {};
+            error.payload = data && typeof data === "object" ? data : null;
             throw error;
         }
 
@@ -292,7 +294,10 @@
             return;
         }
 
-        form.querySelectorAll(".input-error").forEach((field) => field.classList.remove("input-error"));
+        form.querySelectorAll(".input-error").forEach((field) => {
+            field.classList.remove("input-error");
+            field.removeAttribute("aria-invalid");
+        });
         form.querySelectorAll("[data-error-for]").forEach((field) => {
             field.textContent = "";
             field.classList.remove("visible");
@@ -309,6 +314,7 @@
         const input = form.querySelector(`[name="${fieldName}"]`);
         if (input) {
             input.classList.add("input-error");
+            input.setAttribute("aria-invalid", "true");
         }
 
         const target = form.querySelector(`[data-error-for="${fieldName}"]`);
@@ -323,10 +329,31 @@
         if (summary) {
             summary.textContent = message;
             summary.classList.remove("hidden");
+            summary.setAttribute("role", "alert");
         }
     }
 
-    function renderFormErrors(form, error) {
+    function friendlyErrorMessage(error, fallback) {
+        if (error && error.message) {
+            return error.message;
+        }
+
+        if (error && error.status === 401) {
+            return "Please sign in again before continuing.";
+        }
+
+        if (error && error.status === 403) {
+            return "You do not have permission to complete this action.";
+        }
+
+        if (error && error.status >= 500) {
+            return "The server could not complete the request. Please try again later.";
+        }
+
+        return fallback || "Unable to complete the request. Please review the details and try again.";
+    }
+
+    function renderFormErrors(form, error, fallback) {
         clearFormErrors(form);
         const fieldErrors = error && error.fieldErrors ? error.fieldErrors : {};
         const entries = Object.entries(fieldErrors);
@@ -338,9 +365,7 @@
             return true;
         }
 
-        if (error && error.message) {
-            setFormError(form, error.message);
-        }
+        setFormError(form, friendlyErrorMessage(error, fallback));
         return false;
     }
 
@@ -377,10 +402,10 @@
         }).format(new Date(value));
     }
 
-    function formatCurrency(value) {
+    function formatCurrency(value, currency = "USD") {
         return new Intl.NumberFormat("en-US", {
             style: "currency",
-            currency: "USD",
+            currency: currency || "USD",
             minimumFractionDigits: 2
         }).format(Number(value || 0));
     }
@@ -394,6 +419,7 @@
         formToObject,
         formatCurrency,
         formatDateTime,
+        friendlyErrorMessage,
         getToken,
         logout,
         queueFlash,

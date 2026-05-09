@@ -1182,6 +1182,57 @@ textarea:focus {
     text-align: center;
 }
 
+.loading-state {
+    color: var(--ink-soft);
+    background: #f5f8f6;
+    border-style: solid;
+    font-weight: 750;
+}
+
+.directory-empty {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 6px;
+}
+
+.directory-empty strong {
+    color: var(--ink);
+}
+
+.directory-empty span {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.result-summary {
+    grid-column: 1 / -1;
+    padding: 10px 14px;
+    color: var(--ink-soft);
+    background: var(--surface-muted);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.filter-actions button {
+    min-width: 112px;
+}
+
+.stack-form .form-error:not(.hidden) {
+    display: block;
+}
+
+.editor-card .form-error {
+    margin-bottom: 2px;
+}
+
 .toast {
     position: fixed;
     right: 22px;
@@ -1357,6 +1408,7 @@ button.danger-button:hover {
     .two-column-panel,
     .three-column-panel,
     .filter-form,
+    .filter-actions,
     .card-grid,
     .choice-grid,
     .stats-grid,
@@ -1367,6 +1419,10 @@ button.danger-button:hover {
     .slot-calendar,
     .admin-list-toolbar {
         grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        display: grid;
     }
 
     .content-card {

@@ -719,6 +719,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const payload = app.formToObject(form);
         payload.active = payload.active === "true";
 
+        app.clearFormErrors(form);
         await app.withFormLoading(form, "Saving...", async () => {
             const updated = await app.api(`/api/users/${userId}`, {
                 method: "PUT",
@@ -745,7 +746,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 }
             }
         }).catch((error) => {
-            app.showToast(error.message, "error", "toast");
+            app.renderFormErrors(form, error, "Unable to save the user account. Please review the form.");
         });
     }
 
@@ -782,6 +783,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         payload.categoryId = Number(payload.categoryId);
         payload.baseFee = Number(payload.baseFee);
 
+        app.clearFormErrors(form);
         await app.withFormLoading(form, "Saving...", async () => {
             const updated = await app.api(`/api/specialists/${specialistId}`, {
                 method: "PUT",
@@ -791,7 +793,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             app.showFormSuccess(form, "Specialist profile updated successfully.");
             await loadSpecialists();
         }).catch((error) => {
-            app.showToast(error.message, "error", "toast");
+            app.renderFormErrors(form, error, "Unable to save the specialist profile. Please review the form.");
         });
     }
 
@@ -801,6 +803,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const payload = app.formToObject(form);
         payload.active = payload.active === "true";
 
+        app.clearFormErrors(form);
         await app.withFormLoading(form, "Saving...", async () => {
             let saved;
             if (state.selectedCategoryId) {
@@ -821,7 +824,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await loadSpecialists();
             }
         }).catch((error) => {
-            app.showToast(error.message, "error", "toast");
+            app.renderFormErrors(form, error, "Unable to save the category. Please review the form.");
         });
     }
 

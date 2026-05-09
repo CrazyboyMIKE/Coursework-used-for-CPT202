@@ -89,14 +89,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function onCreateBooking(event) {
         event.preventDefault();
         const form = event.currentTarget;
+        app.clearFormErrors(form);
 
         if (!state.selectedBookingSpecialist) {
-            app.showToast("Please choose a specialist before creating a booking.", "error", "toast");
+            app.setFormError(form, "Please choose a specialist before creating a booking.");
             return;
         }
 
         if (!state.selectedSlotId || !elements.bookingSlotId.value) {
-            app.showToast("Please choose an available time slot before creating a booking.", "error", "toast");
+            app.setFormError(form, "Please choose an available time slot before creating a booking.");
             return;
         }
 
@@ -113,7 +114,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             await refreshCustomerWorkspace();
             app.showFormSuccess(form, "Booking submitted and waiting for confirmation.");
         }).catch((error) => {
-            app.showToast(error.message, "error", "toast");
+            app.renderFormErrors(form, error, "Unable to submit the booking. Please review the form and try again.");
         });
     }
 
@@ -435,11 +436,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function refreshCustomerWorkspace() {
+        elements.customerBookings.innerHTML = '<div class="empty-state loading-state">Loading booking history...</div>';
         try {
             const bookings = await app.api(buildCustomerBookingsUrl());
             renderCustomerBookings(bookings);
         } catch (error) {
-            app.showToast(error.message, "error", "toast");
+            elements.customerBookings.innerHTML = `
+                <div class="empty-state directory-empty">
+                    <strong>Unable to load booking history</strong>
+                    <span>${app.escapeHtml(app.friendlyErrorMessage(error, "Please refresh bookings again."))}</span>
+                </div>
+            `;
+            app.showToast(app.friendlyErrorMessage(error), "error", "toast");
         }
     }
 
