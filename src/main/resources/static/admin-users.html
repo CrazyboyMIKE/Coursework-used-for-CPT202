@@ -50,11 +50,20 @@
         <div class="management-grid">
             <div class="content-card">
                 <h3>Account Directory</h3>
+                <form class="admin-list-toolbar" data-admin-search="users">
+                    <label>
+                        <span class="muted-label">Search Users</span>
+                        <input id="user-search" type="search" placeholder="Name, username, email, or phone">
+                    </label>
+                    <button class="ghost-button" type="submit">Search</button>
+                </form>
                 <div id="user-list" class="management-list"></div>
+                <div id="user-pagination" class="pagination-bar"></div>
             </div>
 
             <form id="admin-user-edit-form" class="content-card stack-form editor-card">
                 <h3>Edit Selected User</h3>
+                <div class="form-error hidden" data-form-error></div>
                 <label>
                     <span>User ID</span>
                     <input id="edit-user-id" name="userId" type="number" readonly>

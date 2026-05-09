@@ -15,7 +15,7 @@ public final class AuthDtos {
 
     public record RegisterRequest(
             @NotBlank @Size(max = 50) String username,
-            @NotBlank @Size(min = 6, max = 100) String password,
+            @NotBlank @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters") String password,
             @NotBlank @Size(max = 100) String fullName,
             @NotBlank @Email @Size(max = 120) String email,
             @Size(max = 30) String phone
@@ -24,7 +24,7 @@ public final class AuthDtos {
 
     public record SpecialistRegisterRequest(
             @NotBlank @Size(max = 50) String username,
-            @NotBlank @Size(min = 6, max = 100) String password,
+            @NotBlank @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters") String password,
             @NotBlank @Size(max = 100) String fullName,
             @NotBlank @Email @Size(max = 120) String email,
             @Size(max = 30) String phone,
@@ -37,8 +37,8 @@ public final class AuthDtos {
     }
 
     public record LoginRequest(
-            @NotBlank String username,
-            @NotBlank String password
+            @NotBlank @Size(max = 120) String username,
+            @NotBlank @Size(max = 255) String password
     ) {
     }
 
@@ -53,12 +53,12 @@ public final class AuthDtos {
 
     public record ChangePasswordRequest(
             @NotBlank String currentPassword,
-            @NotBlank @Size(min = 6, max = 100) String newPassword
+            @NotBlank @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters") String newPassword
     ) {
     }
 
     public record PasswordResetRequest(
-            @NotBlank String identifier
+            @NotBlank @Size(max = 120) String identifier
     ) {
     }
 
@@ -70,8 +70,8 @@ public final class AuthDtos {
     }
 
     public record PasswordResetConfirmRequest(
-            @NotBlank String resetCode,
-            @NotBlank @Size(min = 6, max = 100) String newPassword
+            @NotBlank @Size(max = 32) String resetCode,
+            @NotBlank @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters") String newPassword
     ) {
     }
 }

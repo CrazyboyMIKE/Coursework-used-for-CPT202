@@ -1,6 +1,7 @@
 package com.example.consultingbooking.service;
 
 import com.example.consultingbooking.dto.BookingDtos;
+import com.example.consultingbooking.dto.PageDtos;
 import com.example.consultingbooking.entity.Booking;
 import com.example.consultingbooking.entity.BookingStatus;
 import com.example.consultingbooking.entity.SlotStatus;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -228,6 +230,18 @@ public class BookingService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public PageDtos.PageResponse<BookingDtos.BookingResponse> adminBookings(
+            UserAccount admin,
+            BookingStatus status,
+            String keyword,
+            Pageable pageable
+    ) {
+        authService.ensureRole(admin, UserRole.ADMIN);
+        return PageDtos.PageResponse.from(bookingRepository.searchForAdmin(status, TextNormalizer.keyword(keyword), pageable)
+                .map(this::mapBooking));
+    }
+
     public Booking getEntity(Long bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Booking not found"));
@@ -286,14 +300,11 @@ public class BookingService {
                 booking.getTopic(),
                 booking.getNotes(),
                 booking.getPrice(),
-                normalizeCurrency(booking.getSpecialist().getFeeCurrency()),
+                BusinessConstants.DEFAULT_CURRENCY,
                 booking.getLastActionReason(),
                 booking.getCreatedAt(),
                 booking.getUpdatedAt()
         );
     }
 
-    private String normalizeCurrency(String value) {
-        return "USD";
-    }
 }

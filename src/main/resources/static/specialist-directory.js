@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         headerFullName: document.getElementById("header-full-name"),
         headerRole: document.getElementById("header-role"),
         searchCategory: document.getElementById("search-category"),
+        searchForm: document.getElementById("specialist-search-form"),
         specialistResults: document.getElementById("specialist-results")
     };
 
@@ -33,7 +34,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function bindEvents() {
         document.getElementById("logout-button").addEventListener("click", onLogout);
-        document.getElementById("specialist-search-form").addEventListener("submit", onSearchSpecialists);
+        elements.searchForm.addEventListener("submit", onSearchSpecialists);
+        elements.searchForm.addEventListener("reset", onResetSearch);
     }
 
     function renderHeader() {
@@ -43,15 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function onLogout() {
-        try {
-            await app.api("/api/auth/logout", { method: "POST" });
-        } catch (error) {
-            console.warn(error.message);
-        } finally {
-            app.clearSession();
-            app.queueFlash("Signed out successfully.", "success");
-            window.location.replace("/login.html");
-        }
+        await app.logout();
     }
 
     async function loadCategories() {
@@ -72,7 +66,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         await searchSpecialists();
     }
 
+    function onResetSearch() {
+        window.setTimeout(searchSpecialists, 0);
+    }
+
     async function searchSpecialists() {
+        renderDirectoryLoading();
         const params = new URLSearchParams();
         const keyword = document.getElementById("search-keyword").value.trim();
         const categoryId = elements.searchCategory.value;
@@ -105,17 +104,34 @@ document.addEventListener("DOMContentLoaded", async () => {
             state.specialists = await app.api(url);
             renderSpecialists();
         } catch (error) {
-            app.showToast(error.message, "error", "toast");
+            elements.specialistResults.innerHTML = `
+                <div class="empty-state directory-empty">
+                    <strong>Unable to load specialists</strong>
+                    <span>${app.escapeHtml(app.friendlyErrorMessage(error, "Please try the search again."))}</span>
+                </div>
+            `;
+            app.showToast(app.friendlyErrorMessage(error), "error", "toast");
         }
+    }
+
+    function renderDirectoryLoading() {
+        elements.specialistResults.innerHTML = '<div class="empty-state loading-state">Loading specialists...</div>';
     }
 
     function renderSpecialists() {
         if (!state.specialists.length) {
-            elements.specialistResults.innerHTML = '<div class="empty-state">No specialists match the current filters.</div>';
+            elements.specialistResults.innerHTML = `
+                <div class="empty-state directory-empty">
+                    <strong>No specialists match the current filters.</strong>
+                    <span>Try clearing the fee range, category, or availability time.</span>
+                </div>
+            `;
             return;
         }
 
-        elements.specialistResults.innerHTML = state.specialists.map((specialist) => `
+        elements.specialistResults.innerHTML = `
+            <div class="result-summary">${state.specialists.length} specialist${state.specialists.length === 1 ? "" : "s"} found</div>
+            ${state.specialists.map((specialist) => `
             <article class="specialist-card">
                 <div class="card-head">
                     <div>
@@ -134,6 +150,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <a class="secondary-link compact-link" href="/specialist-detail.html?id=${specialist.id}">View Profile & Availability</a>
                 </div>
             </article>
-        `).join("");
+            `).join("")}
+        `;
     }
 });

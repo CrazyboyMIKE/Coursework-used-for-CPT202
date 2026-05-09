@@ -101,11 +101,20 @@
         <div class="management-grid">
             <div class="content-card">
                 <h3>Specialist Directory</h3>
+                <form class="admin-list-toolbar" data-admin-search="specialists">
+                    <label>
+                        <span class="muted-label">Search Specialists</span>
+                        <input id="specialist-search" type="search" placeholder="Name, username, category, or title">
+                    </label>
+                    <button class="ghost-button" type="submit">Search</button>
+                </form>
                 <div id="specialist-list" class="management-list"></div>
+                <div id="specialist-pagination" class="pagination-bar"></div>
             </div>
 
             <form id="admin-specialist-edit-form" class="content-card stack-form editor-card">
                 <h3>Edit Selected Specialist</h3>
+                <div class="form-error hidden" data-form-error></div>
                 <label>
                     <span>Specialist Name</span>
                     <input id="edit-specialist-full-name" type="text" readonly>

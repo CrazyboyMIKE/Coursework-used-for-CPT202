@@ -3,6 +3,7 @@ package com.example.consultingbooking.dto;
 import com.example.consultingbooking.entity.BookingStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,8 +14,8 @@ public final class BookingDtos {
     }
 
     public record CreateBookingRequest(
-            @NotNull Long specialistId,
-            @NotNull Long slotId,
+            @NotNull @Positive Long specialistId,
+            @NotNull @Positive Long slotId,
             @NotBlank @Size(max = 120) String topic,
             @Size(max = 500) String notes
     ) {
@@ -26,7 +27,7 @@ public final class BookingDtos {
     }
 
     public record RescheduleRequest(
-            @NotNull Long newSlotId
+            @NotNull @Positive Long newSlotId
     ) {
     }
 

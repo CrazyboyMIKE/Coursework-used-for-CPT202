@@ -14,6 +14,7 @@ import com.example.consultingbooking.repository.PasswordResetTokenRepository;
 import com.example.consultingbooking.repository.SessionTokenRepository;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
+import com.example.consultingbooking.security.PasswordHasher;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -79,11 +80,11 @@ public class AuthService {
         SpecialistProfile profile = new SpecialistProfile();
         profile.setUser(saved);
         profile.setCategory(category);
-        profile.setLevel(cleanRequiredText(request.level(), "Professional title or certification is required"));
+        profile.setLevel(TextNormalizer.cleanRequired(request.level(), "Professional title or certification is required"));
         profile.setBaseFee(request.baseFee());
-        profile.setFeeCurrency(normalizeCurrency(request.feeCurrency()));
+        profile.setFeeCurrency(BusinessConstants.DEFAULT_CURRENCY);
         profile.setStatus(SpecialistStatus.ACTIVE);
-        profile.setBio(cleanRequiredText(request.bio(), "Notes are required"));
+        profile.setBio(TextNormalizer.cleanRequired(request.bio(), "Notes are required"));
         specialistProfileRepository.save(profile);
 
         return issueSession(saved);
@@ -100,8 +101,12 @@ public class AuthService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "User account is inactive");
         }
 
-        if (!user.getPassword().equals(request.password())) {
+        if (!PasswordHasher.matches(request.password(), user.getPassword())) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "Invalid username/email or password");
+        }
+        if (PasswordHasher.needsHash(user.getPassword())) {
+            user.setPassword(PasswordHasher.hash(request.password()));
+            userAccountRepository.save(user);
         }
 
         return issueSession(user);
@@ -118,14 +123,14 @@ public class AuthService {
     public void changePassword(String token, AuthDtos.ChangePasswordRequest request) {
         UserAccount user = requireUser(token);
 
-        if (!user.getPassword().equals(request.currentPassword())) {
+        if (!PasswordHasher.matches(request.currentPassword(), user.getPassword())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
         }
-        if (user.getPassword().equals(request.newPassword())) {
+        if (PasswordHasher.matches(request.newPassword(), user.getPassword())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "New password must be different from the current password");
         }
 
-        user.setPassword(request.newPassword());
+        user.setPassword(PasswordHasher.hash(request.newPassword()));
         userAccountRepository.save(user);
         invalidateSessions(user.getId());
     }
@@ -176,7 +181,7 @@ public class AuthService {
         passwordResetTokenRepository.save(token);
 
         UserAccount user = token.getUser();
-        user.setPassword(request.newPassword());
+        user.setPassword(PasswordHasher.hash(request.newPassword()));
         userAccountRepository.save(user);
         invalidateSessions(user.getId());
         deactivateResetTokens(user.getId());
@@ -236,34 +241,17 @@ public class AuthService {
     ) {
         UserAccount user = new UserAccount();
         user.setUsername(username.trim());
-        user.setPassword(password);
+        user.setPassword(PasswordHasher.hash(password));
         user.setFullName(fullName.trim());
         user.setEmail(email.trim().toLowerCase());
-        user.setPhone(cleanText(phone));
+        user.setPhone(TextNormalizer.cleanOptional(phone));
         user.setRole(role);
         user.setActive(true);
         return user;
     }
 
-    private String cleanText(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private String cleanRequiredText(String value, String message) {
-        String cleaned = cleanText(value);
-        if (cleaned == null) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, message);
-        }
-        return cleaned;
-    }
-
     private ExpertiseCategory resolveOrCreateCategory(String rawCategoryName) {
-        String categoryName = cleanRequiredText(rawCategoryName, "Category is required");
+        String categoryName = TextNormalizer.cleanRequired(rawCategoryName, "Category is required");
         ExpertiseCategory category = expertiseCategoryRepository.findByNameIgnoreCase(categoryName)
                 .orElseGet(ExpertiseCategory::new);
         category.setName(categoryName);
@@ -272,10 +260,6 @@ public class AuthService {
         }
         category.setActive(true);
         return expertiseCategoryRepository.save(category);
-    }
-
-    private String normalizeCurrency(String feeCurrency) {
-        return "USD";
     }
 
     private java.util.Optional<UserAccount> findUserByIdentifier(String identifier) {

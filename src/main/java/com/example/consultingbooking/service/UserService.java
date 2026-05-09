@@ -1,12 +1,15 @@
 package com.example.consultingbooking.service;
 
+import com.example.consultingbooking.dto.PageDtos;
 import com.example.consultingbooking.dto.UserDtos;
 import com.example.consultingbooking.entity.UserAccount;
 import com.example.consultingbooking.entity.UserRole;
 import com.example.consultingbooking.exception.BusinessException;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
+import com.example.consultingbooking.security.PasswordHasher;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -47,10 +50,10 @@ public class UserService {
 
         UserAccount user = new UserAccount();
         user.setUsername(request.username().trim());
-        user.setPassword(request.password());
+        user.setPassword(PasswordHasher.hash(request.password()));
         user.setFullName(request.fullName().trim());
         user.setEmail(request.email().trim().toLowerCase());
-        user.setPhone(cleanText(request.phone()));
+        user.setPhone(TextNormalizer.cleanOptional(request.phone()));
         user.setRole(request.role());
         user.setActive(true);
         return mapUser(userAccountRepository.save(user));
@@ -62,6 +65,17 @@ public class UserService {
         return userAccountRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
                 .map(this::mapUser)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PageDtos.PageResponse<UserDtos.UserResponse> listUsers(
+            UserAccount operator,
+            String keyword,
+            Pageable pageable
+    ) {
+        authService.ensureRole(operator, UserRole.ADMIN);
+        return PageDtos.PageResponse.from(userAccountRepository.searchForAdmin(TextNormalizer.keyword(keyword), pageable)
+                .map(this::mapUser));
     }
 
     @Transactional
@@ -85,7 +99,7 @@ public class UserService {
         user.setUsername(username);
         user.setFullName(request.fullName().trim());
         user.setEmail(email);
-        user.setPhone(cleanText(request.phone()));
+        user.setPhone(TextNormalizer.cleanOptional(request.phone()));
         user.setRole(request.role());
         user.setActive(request.active());
         return mapUser(userAccountRepository.save(user));
@@ -100,7 +114,7 @@ public class UserService {
 
         currentUser.setFullName(request.fullName().trim());
         currentUser.setEmail(email);
-        currentUser.setPhone(cleanText(request.phone()));
+        currentUser.setPhone(TextNormalizer.cleanOptional(request.phone()));
         return mapUser(userAccountRepository.save(currentUser));
     }
 
@@ -122,12 +136,4 @@ public class UserService {
         );
     }
 
-    private String cleanText(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

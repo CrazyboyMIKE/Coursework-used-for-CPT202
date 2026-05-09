@@ -72,15 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function onLogout() {
-        try {
-            await app.api("/api/auth/logout", { method: "POST" });
-        } catch (error) {
-            console.warn(error.message);
-        } finally {
-            app.clearSession();
-            app.queueFlash("Signed out successfully.", "success");
-            window.location.replace("/login.html");
-        }
+        await app.logout();
     }
 
     async function prefillSpecialist(specialistId) {
@@ -96,32 +88,34 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function onCreateBooking(event) {
         event.preventDefault();
+        const form = event.currentTarget;
+        app.clearFormErrors(form);
 
         if (!state.selectedBookingSpecialist) {
-            app.showToast("Please choose a specialist before creating a booking.", "error", "toast");
+            app.setFormError(form, "Please choose a specialist before creating a booking.");
             return;
         }
 
         if (!state.selectedSlotId || !elements.bookingSlotId.value) {
-            app.showToast("Please choose an available time slot before creating a booking.", "error", "toast");
+            app.setFormError(form, "Please choose an available time slot before creating a booking.");
             return;
         }
 
-        const payload = app.formToObject(event.currentTarget);
+        const payload = app.formToObject(form);
         payload.specialistId = Number(payload.specialistId);
         payload.slotId = Number(payload.slotId);
 
-        try {
+        await app.withFormLoading(form, "Submitting...", async () => {
             await app.api("/api/bookings", {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
             resetBookingComposer();
             await refreshCustomerWorkspace();
-            app.showToast("Booking submitted and waiting for confirmation.", "success", "toast");
-        } catch (error) {
-            app.showToast(error.message, "error", "toast");
-        }
+            app.showFormSuccess(form, "Booking submitted and waiting for confirmation.");
+        }).catch((error) => {
+            app.renderFormErrors(form, error, "Unable to submit the booking. Please review the form and try again.");
+        });
     }
 
     function onBookingSpecialistQueryInput(event) {
@@ -442,11 +436,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function refreshCustomerWorkspace() {
+        elements.customerBookings.innerHTML = '<div class="empty-state loading-state">Loading booking history...</div>';
         try {
             const bookings = await app.api(buildCustomerBookingsUrl());
             renderCustomerBookings(bookings);
         } catch (error) {
-            app.showToast(error.message, "error", "toast");
+            elements.customerBookings.innerHTML = `
+                <div class="empty-state directory-empty">
+                    <strong>Unable to load booking history</strong>
+                    <span>${app.escapeHtml(app.friendlyErrorMessage(error, "Please refresh bookings again."))}</span>
+                </div>
+            `;
+            app.showToast(app.friendlyErrorMessage(error), "error", "toast");
         }
     }
 
@@ -517,23 +518,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (button.dataset.action === "cancel-booking") {
             const reason = document.getElementById(`customer-reason-${bookingId}`).value;
-            try {
+            await app.withButtonLoading(button, "Cancelling...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Cancel booking",
+                    message: `Cancel booking #${bookingId}? The time slot will be released when possible.`,
+                    confirmLabel: "Cancel Booking",
+                    reasonLabel: "Cancellation Reason",
+                    reasonPlaceholder: reason || "Optional note for this cancellation",
+                    danger: true
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/cancel`, {
                     method: "POST",
-                    body: JSON.stringify({ reason })
+                    body: JSON.stringify({ reason: confirmation.reason || reason })
                 });
                 await refreshCustomerWorkspace();
                 app.showToast("Booking cancelled successfully.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
             return;
         }
 
         if (button.dataset.action === "load-reschedule") {
             const specialistId = Number(button.dataset.specialistId);
             const windowStart = dateValueFromIso(button.dataset.startTime);
-            try {
+            await app.withButtonLoading(button, "Loading...", async () => {
                 const slots = await app.api(`/api/slots/specialists/${specialistId}?status=AVAILABLE&fromDate=${windowStart}&days=7`);
                 const select = document.getElementById(`reschedule-select-${bookingId}`);
                 select.innerHTML = ['<option value="">Select a new time slot</option>']
@@ -542,9 +555,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                         ))
                         .join("");
                 app.showToast("Available reschedule slots loaded.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
             return;
         }
 
@@ -557,16 +570,25 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
-            try {
+            await app.withButtonLoading(button, "Submitting...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Reschedule booking",
+                    message: `Submit booking #${bookingId} for the selected new time slot? It will return to pending confirmation.`,
+                    confirmLabel: "Submit Reschedule"
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/reschedule`, {
                     method: "POST",
                     body: JSON.stringify({ newSlotId })
                 });
                 await refreshCustomerWorkspace();
                 app.showToast("Reschedule submitted. The booking is pending confirmation again.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
         }
     }
 
@@ -588,11 +610,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function buildCustomerBookingsUrl() {
-        const query = new URLSearchParams();
-        if (state.customerStatusFilter !== "ALL") {
-            query.set("status", state.customerStatusFilter);
-        }
-        return query.toString() ? `/api/bookings/me?${query.toString()}` : "/api/bookings/me";
+        return app.buildQueryUrl("/api/bookings/me", {
+            status: state.customerStatusFilter !== "ALL" ? state.customerStatusFilter : null
+        });
     }
 
     function canCustomerCancel(booking) {

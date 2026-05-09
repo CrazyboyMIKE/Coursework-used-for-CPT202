@@ -1,5 +1,6 @@
 package com.example.consultingbooking.service;
 
+import com.example.consultingbooking.dto.PageDtos;
 import com.example.consultingbooking.dto.SpecialistDtos;
 import com.example.consultingbooking.entity.SlotStatus;
 import com.example.consultingbooking.entity.SpecialistProfile;
@@ -13,6 +14,7 @@ import com.example.consultingbooking.repository.TimeSlotRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,9 +64,9 @@ public class SpecialistService {
         profile.setCategory(categoryService.getEntity(request.categoryId()));
         profile.setLevel(normalizeLevel(request.level()));
         profile.setBaseFee(request.baseFee());
-        profile.setFeeCurrency(normalizeCurrency(request.feeCurrency()));
+        profile.setFeeCurrency(BusinessConstants.DEFAULT_CURRENCY);
         profile.setStatus(request.status());
-        profile.setBio(normalizeOptionalText(request.bio()));
+        profile.setBio(TextNormalizer.cleanOptional(request.bio()));
         return mapSpecialist(specialistProfileRepository.save(profile));
     }
 
@@ -80,9 +82,9 @@ public class SpecialistService {
         profile.setCategory(categoryService.getEntity(request.categoryId()));
         profile.setLevel(normalizeLevel(request.level()));
         profile.setBaseFee(request.baseFee());
-        profile.setFeeCurrency(normalizeCurrency(request.feeCurrency()));
+        profile.setFeeCurrency(BusinessConstants.DEFAULT_CURRENCY);
         profile.setStatus(request.status());
-        profile.setBio(normalizeOptionalText(request.bio()));
+        profile.setBio(TextNormalizer.cleanOptional(request.bio()));
         return mapSpecialist(specialistProfileRepository.save(profile));
     }
 
@@ -99,8 +101,8 @@ public class SpecialistService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Maximum fee must be greater than or equal to minimum fee");
         }
 
-        String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase();
-        String normalizedLevel = normalizeOptionalText(level);
+        String normalizedKeyword = TextNormalizer.keyword(keyword);
+        String normalizedLevel = TextNormalizer.cleanOptional(level);
         return specialistProfileRepository.findAll().stream()
                 .filter(profile -> profile.getStatus() == SpecialistStatus.ACTIVE)
                 .filter(profile -> categoryId == null || profile.getCategory().getId().equals(categoryId))
@@ -120,6 +122,17 @@ public class SpecialistService {
         return specialistProfileRepository.findAll().stream()
                 .map(this::mapSpecialist)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PageDtos.PageResponse<SpecialistDtos.SpecialistResponse> listSpecialistsForManagement(
+            UserAccount operator,
+            String keyword,
+            Pageable pageable
+    ) {
+        authService.ensureRole(operator, UserRole.ADMIN);
+        return PageDtos.PageResponse.from(specialistProfileRepository.searchForManagement(TextNormalizer.keyword(keyword), pageable)
+                .map(this::mapSpecialist));
     }
 
     public SpecialistProfile getEntity(Long specialistId) {
@@ -177,29 +190,18 @@ public class SpecialistService {
                 profile.getCategory().getName(),
                 profile.getLevel(),
                 profile.getBaseFee(),
-                normalizeCurrency(profile.getFeeCurrency()),
+                BusinessConstants.DEFAULT_CURRENCY,
                 profile.getStatus(),
                 profile.getBio()
         );
     }
 
     private String normalizeLevel(String value) {
-        String normalized = normalizeOptionalText(value);
+        String normalized = TextNormalizer.cleanOptional(value);
         if (normalized == null) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Professional title or certification is required");
         }
         return normalized;
     }
 
-    private String normalizeOptionalText(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private String normalizeCurrency(String value) {
-        return "USD";
-    }
 }

@@ -47,7 +47,9 @@
             const message = data && typeof data === "object" ? data.message : null;
             const error = new Error(message || "Request failed");
             error.status = response.status;
+            error.code = data && typeof data === "object" && data.code ? data.code : "";
             error.fieldErrors = data && typeof data === "object" && data.fieldErrors ? data.fieldErrors : {};
+            error.payload = data && typeof data === "object" ? data : null;
             throw error;
         }
 
@@ -56,6 +58,18 @@
 
     async function fetchCurrentUser() {
         return api("/api/users/me");
+    }
+
+    async function logout() {
+        try {
+            await api("/api/auth/logout", { method: "POST" });
+        } catch (error) {
+            console.warn(error.message);
+        } finally {
+            clearSession();
+            queueFlash("Signed out successfully.", "success");
+            window.location.replace("/login.html");
+        }
     }
 
     function workspacePathForRole(role) {
@@ -124,12 +138,151 @@
             return;
         }
 
+        toast.setAttribute("role", "status");
+        toast.setAttribute("aria-live", "polite");
         toast.textContent = message;
         toast.className = `toast ${type || "success"}`;
         window.clearTimeout(showToast.timer);
         showToast.timer = window.setTimeout(() => {
             toast.className = "toast hidden";
         }, 2800);
+    }
+
+    function setButtonLoading(button, loading, loadingText) {
+        if (!button) {
+            return;
+        }
+
+        if (loading) {
+            if (!button.dataset.defaultLabel) {
+                button.dataset.defaultLabel = button.textContent;
+            }
+            button.textContent = loadingText || "Working...";
+            button.disabled = true;
+            button.setAttribute("aria-busy", "true");
+            return;
+        }
+
+        button.textContent = button.dataset.defaultLabel || button.textContent;
+        button.disabled = false;
+        button.removeAttribute("aria-busy");
+    }
+
+    async function withButtonLoading(button, loadingText, task) {
+        if (button && button.disabled) {
+            return null;
+        }
+
+        setButtonLoading(button, true, loadingText);
+        try {
+            return await task();
+        } finally {
+            setButtonLoading(button, false);
+        }
+    }
+
+    async function withFormLoading(form, loadingText, task) {
+        const button = form ? form.querySelector('button[type="submit"]') : null;
+        return withButtonLoading(button, loadingText, task);
+    }
+
+    function showFormSuccess(form, message) {
+        if (!form) {
+            showToast(message, "success", "toast");
+            return;
+        }
+
+        let notice = form.querySelector("[data-form-success]");
+        if (!notice) {
+            notice = document.createElement("div");
+            notice.className = "form-success";
+            notice.setAttribute("data-form-success", "");
+            notice.setAttribute("role", "status");
+            const heading = form.querySelector("h3, h2");
+            if (heading && heading.nextSibling) {
+                form.insertBefore(notice, heading.nextSibling);
+            } else {
+                form.prepend(notice);
+            }
+        }
+
+        notice.textContent = message;
+        notice.classList.add("visible");
+        window.clearTimeout(showFormSuccess.timer);
+        showFormSuccess.timer = window.setTimeout(() => {
+            notice.classList.remove("visible");
+        }, 4200);
+        showToast(message, "success", "toast");
+    }
+
+    function confirmAction(options = {}) {
+        return new Promise((resolve) => {
+            const previous = document.querySelector(".modal-backdrop");
+            if (previous) {
+                previous.remove();
+            }
+
+            const backdrop = document.createElement("div");
+            backdrop.className = "modal-backdrop";
+            backdrop.innerHTML = `
+                <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+                    <div class="modal-head">
+                        <div>
+                            <p class="eyebrow">${escapeHtml(options.eyebrow || "Confirm Action")}</p>
+                            <h2 id="confirm-title">${escapeHtml(options.title || "Confirm this action")}</h2>
+                        </div>
+                    </div>
+                    <p class="modal-copy">${escapeHtml(options.message || "Please confirm before continuing.")}</p>
+                    ${options.reasonLabel ? `
+                        <label class="modal-reason">
+                            <span>${escapeHtml(options.reasonLabel)}</span>
+                            <textarea rows="3" maxlength="255" placeholder="${escapeHtml(options.reasonPlaceholder || "")}"></textarea>
+                        </label>
+                    ` : ""}
+                    <div class="modal-actions">
+                        <button class="${options.danger ? "danger-button" : ""}" type="button" data-confirm-action="confirm">${escapeHtml(options.confirmLabel || "Confirm")}</button>
+                        <button class="ghost-button" type="button" data-confirm-action="cancel">${escapeHtml(options.cancelLabel || "Cancel")}</button>
+                    </div>
+                </section>
+            `;
+
+            function close(result) {
+                document.removeEventListener("keydown", onKeyDown);
+                backdrop.remove();
+                resolve(result);
+            }
+
+            function onKeyDown(event) {
+                if (event.key === "Escape") {
+                    close({ confirmed: false, reason: "" });
+                }
+            }
+
+            backdrop.addEventListener("click", (event) => {
+                if (event.target === backdrop) {
+                    close({ confirmed: false, reason: "" });
+                    return;
+                }
+
+                const button = event.target.closest("[data-confirm-action]");
+                if (!button) {
+                    return;
+                }
+
+                if (button.dataset.confirmAction === "cancel") {
+                    close({ confirmed: false, reason: "" });
+                    return;
+                }
+
+                const input = backdrop.querySelector("textarea");
+                close({ confirmed: true, reason: input ? input.value.trim() : "" });
+            });
+
+            document.body.appendChild(backdrop);
+            document.addEventListener("keydown", onKeyDown);
+            const focusTarget = backdrop.querySelector("textarea") || backdrop.querySelector("[data-confirm-action='confirm']");
+            focusTarget?.focus();
+        });
     }
 
     function formToObject(form) {
@@ -141,7 +294,10 @@
             return;
         }
 
-        form.querySelectorAll(".input-error").forEach((field) => field.classList.remove("input-error"));
+        form.querySelectorAll(".input-error").forEach((field) => {
+            field.classList.remove("input-error");
+            field.removeAttribute("aria-invalid");
+        });
         form.querySelectorAll("[data-error-for]").forEach((field) => {
             field.textContent = "";
             field.classList.remove("visible");
@@ -158,6 +314,7 @@
         const input = form.querySelector(`[name="${fieldName}"]`);
         if (input) {
             input.classList.add("input-error");
+            input.setAttribute("aria-invalid", "true");
         }
 
         const target = form.querySelector(`[data-error-for="${fieldName}"]`);
@@ -172,10 +329,31 @@
         if (summary) {
             summary.textContent = message;
             summary.classList.remove("hidden");
+            summary.setAttribute("role", "alert");
         }
     }
 
-    function renderFormErrors(form, error) {
+    function friendlyErrorMessage(error, fallback) {
+        if (error && error.message) {
+            return error.message;
+        }
+
+        if (error && error.status === 401) {
+            return "Please sign in again before continuing.";
+        }
+
+        if (error && error.status === 403) {
+            return "You do not have permission to complete this action.";
+        }
+
+        if (error && error.status >= 500) {
+            return "The server could not complete the request. Please try again later.";
+        }
+
+        return fallback || "Unable to complete the request. Please review the details and try again.";
+    }
+
+    function renderFormErrors(form, error, fallback) {
         clearFormErrors(form);
         const fieldErrors = error && error.fieldErrors ? error.fieldErrors : {};
         const entries = Object.entries(fieldErrors);
@@ -187,14 +365,22 @@
             return true;
         }
 
-        if (error && error.message) {
-            setFormError(form, error.message);
-        }
+        setFormError(form, friendlyErrorMessage(error, fallback));
         return false;
     }
 
     function toApiDateTime(localValue) {
         return localValue ? `${localValue}:00` : "";
+    }
+
+    function buildQueryUrl(baseUrl, params = {}) {
+        const query = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                query.set(key, value);
+            }
+        });
+        return query.toString() ? `${baseUrl}?${query.toString()}` : baseUrl;
     }
 
     function escapeHtml(value) {
@@ -216,10 +402,10 @@
         }).format(new Date(value));
     }
 
-    function formatCurrency(value) {
+    function formatCurrency(value, currency = "USD") {
         return new Intl.NumberFormat("en-US", {
             style: "currency",
-            currency: "USD",
+            currency: currency || "USD",
             minimumFractionDigits: 2
         }).format(Number(value || 0));
     }
@@ -233,15 +419,23 @@
         formToObject,
         formatCurrency,
         formatDateTime,
+        friendlyErrorMessage,
         getToken,
+        logout,
         queueFlash,
         redirectIfAuthenticated,
         renderFormErrors,
         requireAuth,
+        confirmAction,
         setFieldError,
         setFormError,
+        setButtonLoading,
         setToken,
+        showFormSuccess,
         showToast,
+        withButtonLoading,
+        withFormLoading,
+        buildQueryUrl,
         toApiDateTime,
         clearFormErrors,
         workspacePathForRole

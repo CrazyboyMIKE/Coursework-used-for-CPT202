@@ -22,6 +22,7 @@ The system supports:
 - Spring Boot 3.5.14
 - Spring Web
 - Spring Data JPA
+- Flyway database migrations
 - Jakarta Validation
 - MySQL
 - Maven
@@ -87,6 +88,8 @@ The application seeds this administrator account on startup when the active prof
 - Administrator username: `AdminGroup28`
 - Administrator password: `Group28_CPT202`
 
+Passwords are stored as salted SHA-256 hashes using the fixed salt `CPT202-28`. Existing plain-text password rows are upgraded by Flyway migration `V2__hash_existing_passwords.sql`.
+
 The application also ensures these initial categories exist:
 
 - `Financial Advisory`
@@ -109,7 +112,7 @@ The application expects a running MySQL server before `spring-boot:run` can star
 Default values in `application.yml`:
 
 - Host: `localhost`
-- Port: `3306`
+- Port: `3310`
 - Database: `consulting_booking`
 - Username: `root`
 - Password: `root`
@@ -124,14 +127,14 @@ Recommended local run command:
 
 ```bash
 cd /Users/linziwei/Desktop/TESTProgram
-MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
+MYSQL_HOST=127.0.0.1 MYSQL_PORT=3310 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
 ```
 
 If your MySQL root account has no password, use:
 
 ```bash
 cd /Users/linziwei/Desktop/TESTProgram
-MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_USERNAME=root MYSQL_PASSWORD='' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
+MYSQL_HOST=127.0.0.1 MYSQL_PORT=3310 MYSQL_USERNAME=root MYSQL_PASSWORD='' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
 ```
 
 If your MySQL user is not `root`, replace `MYSQL_USERNAME` and `MYSQL_PASSWORD` with your own credentials.
@@ -149,7 +152,7 @@ The project includes a full Docker setup for both the application and MySQL.
 Important:
 
 - Docker Desktop or another Docker daemon must be running before these commands work.
-- If local MySQL or XAMPP is already using port `3306`, stop it first or change the exposed MySQL port in `docker-compose.yml`.
+- If local MySQL or XAMPP is already using port `3310`, stop it first or change the exposed MySQL port in `docker-compose.yml`.
 
 Start the full stack:
 
@@ -193,11 +196,15 @@ Docker Compose database credentials:
 Inside Docker, the app connects to:
 
 - Host: `mysql`
-- Port: `3306`
+- Port: `3310`
 
 From your host machine, the app is exposed on:
 
 - `http://localhost:8080`
+
+From your host machine, MySQL is exposed on:
+
+- `127.0.0.1:3310`
 
 ## Environment Variables
 
@@ -212,6 +219,15 @@ The runtime can be customized with:
 The test runtime can also use:
 
 - `MYSQL_TEST_DATABASE`
+
+## Database Migrations
+
+Flyway owns the application schema under `src/main/resources/db/migration`.
+
+- Initial schema: `V1__initial_schema.sql`
+- Existing password hash migration: `V2__hash_existing_passwords.sql`
+- Runtime Hibernate mode: `ddl-auto: validate`
+- Test profile: `ddl-auto: create-drop` with Flyway disabled
 
 ## Key APIs
 
@@ -246,7 +262,7 @@ Base path:
 ### Users
 
 - `GET /api/users/me`
-- `GET /api/users`
+- `GET /api/users?page=&size=&keyword=`
 - `PUT /api/users/me`
 - `PUT /api/users/{id}`
 - `POST /api/users`
@@ -261,7 +277,7 @@ Base path:
 
 - `GET /api/specialists`
 - `GET /api/specialists/{id}`
-- `GET /api/specialists/manage`
+- `GET /api/specialists/manage?page=&size=&keyword=`
 - `GET /api/specialists/me`
 - `POST /api/specialists`
 - `PUT /api/specialists/{id}`
@@ -301,6 +317,7 @@ Optional query parameters for `GET /api/slots/specialists/{specialistId}`:
 - `POST /api/bookings/{id}/complete`
 - `GET /api/bookings/me`
 - `GET /api/bookings/schedule`
+- `GET /api/bookings/manage?page=&size=&keyword=&status=`
 
 Booking responses include:
 
@@ -340,7 +357,7 @@ Tests use MySQL too. The default test profile in `src/test/resources/application
 
 - Database: `consulting_booking_test`
 - Host: `localhost`
-- Port: `3306`
+- Port: `3310`
 - Username: `root`
 - Password: `root`
 
@@ -348,7 +365,7 @@ If your local MySQL credentials differ, run:
 
 ```bash
 cd /Users/linziwei/Desktop/TESTProgram
-MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository test
+MYSQL_HOST=127.0.0.1 MYSQL_PORT=3310 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository test
 ```
 
 ## MySQL Workbench
@@ -358,14 +375,14 @@ You can inspect the project database with MySQL Workbench.
 Recommended local connection:
 
 - Hostname: `127.0.0.1`
-- Port: `3306`
+- Port: `3310`
 - Username: your actual MySQL username
 - Password: your actual MySQL password
 
 If you are running through Docker and exposing the default port, you can use:
 
 - Hostname: `127.0.0.1`
-- Port: `3306`
+- Port: `3310`
 - Username: `root` or `booking_user`
 - Password: `root` or `booking_pass`
 
@@ -376,7 +393,7 @@ If you are running through Docker and exposing the default port, you can use:
 Your MySQL username or password does not match the values used by the application. Start the app with explicit environment variables:
 
 ```bash
-MYSQL_HOST=127.0.0.1 MYSQL_PORT=3306 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
+MYSQL_HOST=127.0.0.1 MYSQL_PORT=3310 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
 ```
 
 ### `Communications link failure`

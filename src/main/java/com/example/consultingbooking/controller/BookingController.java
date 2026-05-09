@@ -1,12 +1,14 @@
 package com.example.consultingbooking.controller;
 
 import com.example.consultingbooking.dto.BookingDtos;
+import com.example.consultingbooking.dto.PageDtos;
 import com.example.consultingbooking.entity.BookingStatus;
 import com.example.consultingbooking.entity.UserAccount;
 import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.BookingService;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,7 +54,7 @@ public class BookingController {
     public BookingDtos.BookingResponse reject(
             @RequestHeader(AuthService.AUTH_HEADER) String token,
             @PathVariable Long id,
-            @RequestBody(required = false) BookingDtos.ReasonRequest request
+            @Valid @RequestBody(required = false) BookingDtos.ReasonRequest request
     ) {
         UserAccount actor = authService.requireUser(token);
         String reason = request == null ? null : request.reason();
@@ -63,7 +65,7 @@ public class BookingController {
     public BookingDtos.BookingResponse cancel(
             @RequestHeader(AuthService.AUTH_HEADER) String token,
             @PathVariable Long id,
-            @RequestBody(required = false) BookingDtos.ReasonRequest request
+            @Valid @RequestBody(required = false) BookingDtos.ReasonRequest request
     ) {
         UserAccount actor = authService.requireUser(token);
         String reason = request == null ? null : request.reason();
@@ -108,11 +110,19 @@ public class BookingController {
     }
 
     @GetMapping("/manage")
-    public List<BookingDtos.BookingResponse> manage(
+    public PageDtos.PageResponse<BookingDtos.BookingResponse> manage(
             @RequestHeader(AuthService.AUTH_HEADER) String token,
-            @org.springframework.web.bind.annotation.RequestParam(required = false) BookingStatus status
+            @org.springframework.web.bind.annotation.RequestParam(required = false) BookingStatus status,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "8") int size,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String keyword
     ) {
         UserAccount actor = authService.requireUser(token);
-        return bookingService.adminBookings(actor, status);
+        return bookingService.adminBookings(actor, status, keyword, PageRequestFactory.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "id")
+        ));
     }
+
 }
