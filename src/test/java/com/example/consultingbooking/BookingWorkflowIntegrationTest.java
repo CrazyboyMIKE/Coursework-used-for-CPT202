@@ -113,6 +113,62 @@ class BookingWorkflowIntegrationTest {
     }
 
     @Test
+    void shouldCompleteConfirmedBookingAndCloseSlot() {
+        TestFixture fixture = createFixture();
+        BookingDtos.BookingResponse created = bookingService.createBooking(
+                fixture.customer(),
+                new BookingDtos.CreateBookingRequest(fixture.specialist().getId(), fixture.slot().getId(), "Closeout", null)
+        );
+
+        BookingDtos.BookingResponse confirmed = bookingService.confirmBooking(fixture.specialist().getUser(), created.id());
+        BookingDtos.BookingResponse completed = bookingService.completeBooking(fixture.specialist().getUser(), confirmed.id());
+
+        Assertions.assertEquals(BookingStatus.CONFIRMED, confirmed.status());
+        Assertions.assertEquals(BookingStatus.COMPLETED, completed.status());
+        Assertions.assertEquals(SlotStatus.CLOSED, timeSlotRepository.findById(fixture.slot().getId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void shouldRejectBookingWhenSlotBelongsToDifferentSpecialist() {
+        TestFixture fixture = createFixture();
+        UserAccount secondSpecialistUser = createUser("specialist-b", UserRole.SPECIALIST);
+        UserAccount admin = createUser("admin-b", UserRole.ADMIN);
+        ExpertiseCategory category = new ExpertiseCategory();
+        category.setName("Operations");
+        category.setDescription("Operations consulting");
+        category.setActive(true);
+        category = expertiseCategoryRepository.save(category);
+        Long secondSpecialistId = specialistService.createSpecialist(
+                admin,
+                new com.example.consultingbooking.dto.SpecialistDtos.SpecialistRequest(
+                        secondSpecialistUser.getId(),
+                        category.getId(),
+                        "Operations Consultant",
+                        new BigDecimal("180.00"),
+                        "USD",
+                        SpecialistStatus.ACTIVE,
+                        "Operations consultant"
+                )
+        ).id();
+        TimeSlot secondSpecialistSlot = createSlot(specialistService.getEntity(secondSpecialistId), nextWeekdayAt(14));
+
+        Assertions.assertThrows(BusinessException.class, () -> bookingService.createBooking(
+                fixture.customer(),
+                new BookingDtos.CreateBookingRequest(
+                        fixture.specialist().getId(),
+                        secondSpecialistSlot.getId(),
+                        "Mismatched slot",
+                        null
+                )
+        ));
+
+        Assertions.assertEquals(
+                SlotStatus.AVAILABLE,
+                timeSlotRepository.findById(secondSpecialistSlot.getId()).orElseThrow().getStatus()
+        );
+    }
+
+    @Test
     void shouldAllowLoginUsingUsernameOrEmailAfterRegistration() {
         AuthDtos.AuthResponse registered = authService.register(new AuthDtos.RegisterRequest(
                 "new-customer",

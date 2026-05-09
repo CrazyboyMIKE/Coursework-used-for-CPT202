@@ -39,6 +39,25 @@ class AuthControllerValidationTest {
     }
 
     @Test
+    void customerRegisterInvalidEmailReturnsValidationError() throws Exception {
+        mockMvc.perform(post("/api/auth/register/customer")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "customer-one",
+                                  "password": "password123",
+                                  "fullName": "Customer One",
+                                  "email": "not-an-email",
+                                  "phone": "18800000000"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.email").exists());
+    }
+
+    @Test
     void passwordResetCodeLongerThanLimitReturnsValidationError() throws Exception {
         mockMvc.perform(post("/api/auth/password-reset/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
