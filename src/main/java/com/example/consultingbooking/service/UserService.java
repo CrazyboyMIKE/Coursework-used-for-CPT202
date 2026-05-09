@@ -7,6 +7,7 @@ import com.example.consultingbooking.entity.UserRole;
 import com.example.consultingbooking.exception.BusinessException;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
+import com.example.consultingbooking.security.PasswordHasher;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -49,7 +50,7 @@ public class UserService {
 
         UserAccount user = new UserAccount();
         user.setUsername(request.username().trim());
-        user.setPassword(request.password());
+        user.setPassword(PasswordHasher.hash(request.password()));
         user.setFullName(request.fullName().trim());
         user.setEmail(request.email().trim().toLowerCase());
         user.setPhone(cleanText(request.phone()));

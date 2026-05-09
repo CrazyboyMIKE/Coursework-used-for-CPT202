@@ -14,6 +14,7 @@ import com.example.consultingbooking.repository.PasswordResetTokenRepository;
 import com.example.consultingbooking.repository.SessionTokenRepository;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
+import com.example.consultingbooking.security.PasswordHasher;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -100,8 +101,12 @@ public class AuthService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "User account is inactive");
         }
 
-        if (!user.getPassword().equals(request.password())) {
+        if (!PasswordHasher.matches(request.password(), user.getPassword())) {
             throw new BusinessException(HttpStatus.UNAUTHORIZED, "Invalid username/email or password");
+        }
+        if (PasswordHasher.needsHash(user.getPassword())) {
+            user.setPassword(PasswordHasher.hash(request.password()));
+            userAccountRepository.save(user);
         }
 
         return issueSession(user);
@@ -118,14 +123,14 @@ public class AuthService {
     public void changePassword(String token, AuthDtos.ChangePasswordRequest request) {
         UserAccount user = requireUser(token);
 
-        if (!user.getPassword().equals(request.currentPassword())) {
+        if (!PasswordHasher.matches(request.currentPassword(), user.getPassword())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
         }
-        if (user.getPassword().equals(request.newPassword())) {
+        if (PasswordHasher.matches(request.newPassword(), user.getPassword())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "New password must be different from the current password");
         }
 
-        user.setPassword(request.newPassword());
+        user.setPassword(PasswordHasher.hash(request.newPassword()));
         userAccountRepository.save(user);
         invalidateSessions(user.getId());
     }
@@ -176,7 +181,7 @@ public class AuthService {
         passwordResetTokenRepository.save(token);
 
         UserAccount user = token.getUser();
-        user.setPassword(request.newPassword());
+        user.setPassword(PasswordHasher.hash(request.newPassword()));
         userAccountRepository.save(user);
         invalidateSessions(user.getId());
         deactivateResetTokens(user.getId());
@@ -236,7 +241,7 @@ public class AuthService {
     ) {
         UserAccount user = new UserAccount();
         user.setUsername(username.trim());
-        user.setPassword(password);
+        user.setPassword(PasswordHasher.hash(password));
         user.setFullName(fullName.trim());
         user.setEmail(email.trim().toLowerCase());
         user.setPhone(cleanText(phone));

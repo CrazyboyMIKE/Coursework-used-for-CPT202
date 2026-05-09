@@ -88,6 +88,8 @@ The application seeds this administrator account on startup when the active prof
 - Administrator username: `AdminGroup28`
 - Administrator password: `Group28_CPT202`
 
+Passwords are stored as salted SHA-256 hashes using the fixed salt `CPT202-28`. Existing plain-text password rows are upgraded by Flyway migration `V2__hash_existing_passwords.sql`.
+
 The application also ensures these initial categories exist:
 
 - `Financial Advisory`
@@ -223,6 +225,7 @@ The test runtime can also use:
 Flyway owns the application schema under `src/main/resources/db/migration`.
 
 - Initial schema: `V1__initial_schema.sql`
+- Existing password hash migration: `V2__hash_existing_passwords.sql`
 - Runtime Hibernate mode: `ddl-auto: validate`
 - Test profile: `ddl-auto: create-drop` with Flyway disabled
 

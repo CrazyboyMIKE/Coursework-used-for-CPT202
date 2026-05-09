@@ -15,6 +15,7 @@ import com.example.consultingbooking.repository.ExpertiseCategoryRepository;
 import com.example.consultingbooking.repository.SessionTokenRepository;
 import com.example.consultingbooking.repository.TimeSlotRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
+import com.example.consultingbooking.security.PasswordHasher;
 import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.BookingService;
 import com.example.consultingbooking.service.SpecialistService;
@@ -137,6 +138,13 @@ class BookingWorkflowIntegrationTest {
         Assertions.assertFalse(usernameLogin.token().isBlank());
         Assertions.assertFalse(emailLogin.token().isBlank());
         Assertions.assertEquals(2, sessionTokenRepository.findAll().size());
+
+        String storedPassword = userAccountRepository.findByUsernameIgnoreCase("new-customer")
+                .orElseThrow()
+                .getPassword();
+        Assertions.assertNotEquals("password123", storedPassword);
+        Assertions.assertTrue(storedPassword.startsWith("sha256$" + PasswordHasher.SALT + "$"));
+        Assertions.assertTrue(PasswordHasher.matches("password123", storedPassword));
     }
 
     private TestFixture createFixture() {
@@ -172,7 +180,7 @@ class BookingWorkflowIntegrationTest {
     private UserAccount createUser(String username, UserRole role) {
         UserAccount user = new UserAccount();
         user.setUsername(username);
-        user.setPassword("password123");
+        user.setPassword(PasswordHasher.hash("password123"));
         user.setFullName(username);
         user.setEmail(username + "@example.com");
         user.setPhone("18800000000");

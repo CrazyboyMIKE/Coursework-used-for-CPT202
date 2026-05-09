@@ -16,6 +16,7 @@ import com.example.consultingbooking.repository.SessionTokenRepository;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.TimeSlotRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
+import com.example.consultingbooking.security.PasswordHasher;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
@@ -109,7 +110,7 @@ public class DataInitializer {
                 .orElseGet(UserAccount::new);
 
         admin.setUsername(ADMIN_USERNAME);
-        admin.setPassword(ADMIN_PASSWORD);
+        admin.setPassword(PasswordHasher.hash(ADMIN_PASSWORD));
         admin.setFullName("Platform Administrator");
         admin.setEmail(ADMIN_EMAIL);
         admin.setPhone(ADMIN_PHONE);
@@ -123,7 +124,7 @@ public class DataInitializer {
             UserAccount customer = userAccountRepository.findByUsernameIgnoreCase(seed.username())
                     .orElseGet(UserAccount::new);
             customer.setUsername(seed.username());
-            customer.setPassword(seed.password());
+            customer.setPassword(PasswordHasher.hash(seed.password()));
             customer.setFullName(seed.fullName());
             customer.setEmail(seed.email());
             customer.setPhone(seed.phone());
@@ -196,7 +197,7 @@ public class DataInitializer {
         UserAccount specialistUser = userAccountRepository.findByUsernameIgnoreCase(seed.username())
                 .orElseGet(UserAccount::new);
         specialistUser.setUsername(seed.username());
-        specialistUser.setPassword(SPECIALIST_PASSWORD);
+        specialistUser.setPassword(PasswordHasher.hash(SPECIALIST_PASSWORD));
         specialistUser.setFullName(seed.fullName());
         specialistUser.setEmail(seed.email());
         specialistUser.setPhone(seed.phone());
