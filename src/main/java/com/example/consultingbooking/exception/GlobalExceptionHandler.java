@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleOther(Exception ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), Collections.emptyMap());
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error", Collections.emptyMap());
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message, Map<String, String> fieldErrors) {

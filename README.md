@@ -112,7 +112,7 @@ The application expects a running MySQL server before `spring-boot:run` can star
 Default values in `application.yml`:
 
 - Host: `localhost`
-- Port: `3308`
+- Port: `3310`
 - Database: `consulting_booking`
 - Username: `root`
 - Password: `root`
@@ -127,14 +127,14 @@ Recommended local run command:
 
 ```bash
 cd /Users/linziwei/Desktop/TESTProgram
-MYSQL_HOST=127.0.0.1 MYSQL_PORT=3308 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
+MYSQL_HOST=127.0.0.1 MYSQL_PORT=3310 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
 ```
 
 If your MySQL root account has no password, use:
 
 ```bash
 cd /Users/linziwei/Desktop/TESTProgram
-MYSQL_HOST=127.0.0.1 MYSQL_PORT=3308 MYSQL_USERNAME=root MYSQL_PASSWORD='' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
+MYSQL_HOST=127.0.0.1 MYSQL_PORT=3310 MYSQL_USERNAME=root MYSQL_PASSWORD='' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
 ```
 
 If your MySQL user is not `root`, replace `MYSQL_USERNAME` and `MYSQL_PASSWORD` with your own credentials.
@@ -152,7 +152,7 @@ The project includes a full Docker setup for both the application and MySQL.
 Important:
 
 - Docker Desktop or another Docker daemon must be running before these commands work.
-- If local MySQL or XAMPP is already using port `3308`, stop it first or change the exposed MySQL port in `docker-compose.yml`.
+- If local MySQL or XAMPP is already using port `3310`, stop it first or change the exposed MySQL port in `docker-compose.yml`.
 
 Start the full stack:
 
@@ -196,7 +196,7 @@ Docker Compose database credentials:
 Inside Docker, the app connects to:
 
 - Host: `mysql`
-- Port: `3308`
+- Port: `3310`
 
 From your host machine, the app is exposed on:
 
@@ -204,7 +204,7 @@ From your host machine, the app is exposed on:
 
 From your host machine, MySQL is exposed on:
 
-- `127.0.0.1:3308`
+- `127.0.0.1:3310`
 
 ## Environment Variables
 
@@ -357,7 +357,7 @@ Tests use MySQL too. The default test profile in `src/test/resources/application
 
 - Database: `consulting_booking_test`
 - Host: `localhost`
-- Port: `3308`
+- Port: `3310`
 - Username: `root`
 - Password: `root`
 
@@ -365,7 +365,7 @@ If your local MySQL credentials differ, run:
 
 ```bash
 cd /Users/linziwei/Desktop/TESTProgram
-MYSQL_HOST=127.0.0.1 MYSQL_PORT=3308 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository test
+MYSQL_HOST=127.0.0.1 MYSQL_PORT=3310 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository test
 ```
 
 ## MySQL Workbench
@@ -375,14 +375,14 @@ You can inspect the project database with MySQL Workbench.
 Recommended local connection:
 
 - Hostname: `127.0.0.1`
-- Port: `3308`
+- Port: `3310`
 - Username: your actual MySQL username
 - Password: your actual MySQL password
 
 If you are running through Docker and exposing the default port, you can use:
 
 - Hostname: `127.0.0.1`
-- Port: `3308`
+- Port: `3310`
 - Username: `root` or `booking_user`
 - Password: `root` or `booking_pass`
 
@@ -393,7 +393,7 @@ If you are running through Docker and exposing the default port, you can use:
 Your MySQL username or password does not match the values used by the application. Start the app with explicit environment variables:
 
 ```bash
-MYSQL_HOST=127.0.0.1 MYSQL_PORT=3308 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
+MYSQL_HOST=127.0.0.1 MYSQL_PORT=3310 MYSQL_USERNAME=root MYSQL_PASSWORD='your_password' mvn -Dmaven.repo.local=.m2/repository spring-boot:run
 ```
 
 ### `Communications link failure`

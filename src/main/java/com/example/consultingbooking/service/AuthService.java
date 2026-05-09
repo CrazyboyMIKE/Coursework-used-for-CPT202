@@ -80,11 +80,11 @@ public class AuthService {
         SpecialistProfile profile = new SpecialistProfile();
         profile.setUser(saved);
         profile.setCategory(category);
-        profile.setLevel(cleanRequiredText(request.level(), "Professional title or certification is required"));
+        profile.setLevel(TextNormalizer.cleanRequired(request.level(), "Professional title or certification is required"));
         profile.setBaseFee(request.baseFee());
-        profile.setFeeCurrency(normalizeCurrency(request.feeCurrency()));
+        profile.setFeeCurrency(BusinessConstants.DEFAULT_CURRENCY);
         profile.setStatus(SpecialistStatus.ACTIVE);
-        profile.setBio(cleanRequiredText(request.bio(), "Notes are required"));
+        profile.setBio(TextNormalizer.cleanRequired(request.bio(), "Notes are required"));
         specialistProfileRepository.save(profile);
 
         return issueSession(saved);
@@ -244,31 +244,14 @@ public class AuthService {
         user.setPassword(PasswordHasher.hash(password));
         user.setFullName(fullName.trim());
         user.setEmail(email.trim().toLowerCase());
-        user.setPhone(cleanText(phone));
+        user.setPhone(TextNormalizer.cleanOptional(phone));
         user.setRole(role);
         user.setActive(true);
         return user;
     }
 
-    private String cleanText(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private String cleanRequiredText(String value, String message) {
-        String cleaned = cleanText(value);
-        if (cleaned == null) {
-            throw new BusinessException(HttpStatus.BAD_REQUEST, message);
-        }
-        return cleaned;
-    }
-
     private ExpertiseCategory resolveOrCreateCategory(String rawCategoryName) {
-        String categoryName = cleanRequiredText(rawCategoryName, "Category is required");
+        String categoryName = TextNormalizer.cleanRequired(rawCategoryName, "Category is required");
         ExpertiseCategory category = expertiseCategoryRepository.findByNameIgnoreCase(categoryName)
                 .orElseGet(ExpertiseCategory::new);
         category.setName(categoryName);
@@ -277,10 +260,6 @@ public class AuthService {
         }
         category.setActive(true);
         return expertiseCategoryRepository.save(category);
-    }
-
-    private String normalizeCurrency(String feeCurrency) {
-        return "USD";
     }
 
     private java.util.Optional<UserAccount> findUserByIdentifier(String identifier) {

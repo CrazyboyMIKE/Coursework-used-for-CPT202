@@ -53,7 +53,7 @@ public class UserService {
         user.setPassword(PasswordHasher.hash(request.password()));
         user.setFullName(request.fullName().trim());
         user.setEmail(request.email().trim().toLowerCase());
-        user.setPhone(cleanText(request.phone()));
+        user.setPhone(TextNormalizer.cleanOptional(request.phone()));
         user.setRole(request.role());
         user.setActive(true);
         return mapUser(userAccountRepository.save(user));
@@ -74,7 +74,7 @@ public class UserService {
             Pageable pageable
     ) {
         authService.ensureRole(operator, UserRole.ADMIN);
-        return PageDtos.PageResponse.from(userAccountRepository.searchForAdmin(normalizeKeyword(keyword), pageable)
+        return PageDtos.PageResponse.from(userAccountRepository.searchForAdmin(TextNormalizer.keyword(keyword), pageable)
                 .map(this::mapUser));
     }
 
@@ -99,7 +99,7 @@ public class UserService {
         user.setUsername(username);
         user.setFullName(request.fullName().trim());
         user.setEmail(email);
-        user.setPhone(cleanText(request.phone()));
+        user.setPhone(TextNormalizer.cleanOptional(request.phone()));
         user.setRole(request.role());
         user.setActive(request.active());
         return mapUser(userAccountRepository.save(user));
@@ -114,7 +114,7 @@ public class UserService {
 
         currentUser.setFullName(request.fullName().trim());
         currentUser.setEmail(email);
-        currentUser.setPhone(cleanText(request.phone()));
+        currentUser.setPhone(TextNormalizer.cleanOptional(request.phone()));
         return mapUser(userAccountRepository.save(currentUser));
     }
 
@@ -136,20 +136,4 @@ public class UserService {
         );
     }
 
-    private String cleanText(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private String normalizeKeyword(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim().toLowerCase();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

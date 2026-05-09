@@ -181,15 +181,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function onLogout() {
-        try {
-            await app.api("/api/auth/logout", { method: "POST" });
-        } catch (error) {
-            console.warn(error.message);
-        } finally {
-            app.clearSession();
-            app.queueFlash("Signed out successfully.", "success");
-            window.location.replace("/login.html");
-        }
+        await app.logout();
     }
 
     function renderProfileForm() {
@@ -1170,19 +1162,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function buildCustomerBookingsUrl() {
-        const params = new URLSearchParams();
-        if (state.customerStatusFilter !== "ALL") {
-            params.set("status", state.customerStatusFilter);
-        }
-        return params.toString() ? `/api/bookings/me?${params.toString()}` : "/api/bookings/me";
+        return app.buildQueryUrl("/api/bookings/me", {
+            status: state.customerStatusFilter !== "ALL" ? state.customerStatusFilter : null
+        });
     }
 
     function buildSpecialistScheduleUrl() {
-        const params = new URLSearchParams();
-        if (state.specialistStatusFilter !== "ALL") {
-            params.set("status", state.specialistStatusFilter);
-        }
-        return params.toString() ? `/api/bookings/schedule?${params.toString()}` : "/api/bookings/schedule";
+        return app.buildQueryUrl("/api/bookings/schedule", {
+            status: state.specialistStatusFilter !== "ALL" ? state.specialistStatusFilter : null
+        });
     }
 
     function canCustomerCancel(booking) {

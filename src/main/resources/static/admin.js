@@ -208,15 +208,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function onLogout() {
-        try {
-            await app.api("/api/auth/logout", { method: "POST" });
-        } catch (error) {
-            console.warn(error.message);
-        } finally {
-            app.clearSession();
-            app.queueFlash("Signed out successfully.", "success");
-            window.location.replace("/login.html");
-        }
+        await app.logout();
     }
 
     async function loadSummary() {

@@ -58,6 +58,18 @@
         return api("/api/users/me");
     }
 
+    async function logout() {
+        try {
+            await api("/api/auth/logout", { method: "POST" });
+        } catch (error) {
+            console.warn(error.message);
+        } finally {
+            clearSession();
+            queueFlash("Signed out successfully.", "success");
+            window.location.replace("/login.html");
+        }
+    }
+
     function workspacePathForRole(role) {
         return role === "ADMIN" ? "/admin.html" : "/dashboard.html";
     }
@@ -336,6 +348,16 @@
         return localValue ? `${localValue}:00` : "";
     }
 
+    function buildQueryUrl(baseUrl, params = {}) {
+        const query = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                query.set(key, value);
+            }
+        });
+        return query.toString() ? `${baseUrl}?${query.toString()}` : baseUrl;
+    }
+
     function escapeHtml(value) {
         return String(value)
                 .replaceAll("&", "&amp;")
@@ -373,6 +395,7 @@
         formatCurrency,
         formatDateTime,
         getToken,
+        logout,
         queueFlash,
         redirectIfAuthenticated,
         renderFormErrors,
@@ -386,6 +409,7 @@
         showToast,
         withButtonLoading,
         withFormLoading,
+        buildQueryUrl,
         toApiDateTime,
         clearFormErrors,
         workspacePathForRole

@@ -72,15 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function onLogout() {
-        try {
-            await app.api("/api/auth/logout", { method: "POST" });
-        } catch (error) {
-            console.warn(error.message);
-        } finally {
-            app.clearSession();
-            app.queueFlash("Signed out successfully.", "success");
-            window.location.replace("/login.html");
-        }
+        await app.logout();
     }
 
     async function prefillSpecialist(specialistId) {
@@ -610,11 +602,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function buildCustomerBookingsUrl() {
-        const query = new URLSearchParams();
-        if (state.customerStatusFilter !== "ALL") {
-            query.set("status", state.customerStatusFilter);
-        }
-        return query.toString() ? `/api/bookings/me?${query.toString()}` : "/api/bookings/me";
+        return app.buildQueryUrl("/api/bookings/me", {
+            status: state.customerStatusFilter !== "ALL" ? state.customerStatusFilter : null
+        });
     }
 
     function canCustomerCancel(booking) {

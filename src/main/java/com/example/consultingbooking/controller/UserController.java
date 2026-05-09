@@ -6,7 +6,6 @@ import com.example.consultingbooking.entity.UserAccount;
 import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,7 +45,11 @@ public class UserController {
             @RequestParam(required = false) String keyword
     ) {
         UserAccount operator = authService.requireUser(token);
-        return userService.listUsers(operator, keyword, pageRequest(page, size));
+        return userService.listUsers(operator, keyword, PageRequestFactory.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.ASC, "id")
+        ));
     }
 
     @PutMapping("/me")
@@ -78,9 +81,4 @@ public class UserController {
         return userService.createUser(operator, request);
     }
 
-    private PageRequest pageRequest(int page, int size) {
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.min(Math.max(size, 1), 50);
-        return PageRequest.of(normalizedPage, normalizedSize, Sort.by(Sort.Direction.ASC, "id"));
-    }
 }

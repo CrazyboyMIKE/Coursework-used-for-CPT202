@@ -238,7 +238,7 @@ public class BookingService {
             Pageable pageable
     ) {
         authService.ensureRole(admin, UserRole.ADMIN);
-        return PageDtos.PageResponse.from(bookingRepository.searchForAdmin(status, normalizeKeyword(keyword), pageable)
+        return PageDtos.PageResponse.from(bookingRepository.searchForAdmin(status, TextNormalizer.keyword(keyword), pageable)
                 .map(this::mapBooking));
     }
 
@@ -300,22 +300,11 @@ public class BookingService {
                 booking.getTopic(),
                 booking.getNotes(),
                 booking.getPrice(),
-                normalizeCurrency(booking.getSpecialist().getFeeCurrency()),
+                BusinessConstants.DEFAULT_CURRENCY,
                 booking.getLastActionReason(),
                 booking.getCreatedAt(),
                 booking.getUpdatedAt()
         );
     }
 
-    private String normalizeCurrency(String value) {
-        return "USD";
-    }
-
-    private String normalizeKeyword(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim().toLowerCase();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
 }

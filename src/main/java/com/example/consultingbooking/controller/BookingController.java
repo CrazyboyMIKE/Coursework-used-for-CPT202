@@ -8,7 +8,6 @@ import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.BookingService;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,7 +54,7 @@ public class BookingController {
     public BookingDtos.BookingResponse reject(
             @RequestHeader(AuthService.AUTH_HEADER) String token,
             @PathVariable Long id,
-            @RequestBody(required = false) BookingDtos.ReasonRequest request
+            @Valid @RequestBody(required = false) BookingDtos.ReasonRequest request
     ) {
         UserAccount actor = authService.requireUser(token);
         String reason = request == null ? null : request.reason();
@@ -66,7 +65,7 @@ public class BookingController {
     public BookingDtos.BookingResponse cancel(
             @RequestHeader(AuthService.AUTH_HEADER) String token,
             @PathVariable Long id,
-            @RequestBody(required = false) BookingDtos.ReasonRequest request
+            @Valid @RequestBody(required = false) BookingDtos.ReasonRequest request
     ) {
         UserAccount actor = authService.requireUser(token);
         String reason = request == null ? null : request.reason();
@@ -119,12 +118,11 @@ public class BookingController {
             @org.springframework.web.bind.annotation.RequestParam(required = false) String keyword
     ) {
         UserAccount actor = authService.requireUser(token);
-        return bookingService.adminBookings(actor, status, keyword, pageRequest(page, size));
+        return bookingService.adminBookings(actor, status, keyword, PageRequestFactory.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "id")
+        ));
     }
 
-    private PageRequest pageRequest(int page, int size) {
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.min(Math.max(size, 1), 50);
-        return PageRequest.of(normalizedPage, normalizedSize, Sort.by(Sort.Direction.DESC, "id"));
-    }
 }
