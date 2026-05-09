@@ -96,6 +96,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function onCreateBooking(event) {
         event.preventDefault();
+        const form = event.currentTarget;
 
         if (!state.selectedBookingSpecialist) {
             app.showToast("Please choose a specialist before creating a booking.", "error", "toast");
@@ -107,21 +108,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        const payload = app.formToObject(event.currentTarget);
+        const payload = app.formToObject(form);
         payload.specialistId = Number(payload.specialistId);
         payload.slotId = Number(payload.slotId);
 
-        try {
+        await app.withFormLoading(form, "Submitting...", async () => {
             await app.api("/api/bookings", {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
             resetBookingComposer();
             await refreshCustomerWorkspace();
-            app.showToast("Booking submitted and waiting for confirmation.", "success", "toast");
-        } catch (error) {
+            app.showFormSuccess(form, "Booking submitted and waiting for confirmation.");
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 
     function onBookingSpecialistQueryInput(event) {
@@ -517,23 +518,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (button.dataset.action === "cancel-booking") {
             const reason = document.getElementById(`customer-reason-${bookingId}`).value;
-            try {
+            await app.withButtonLoading(button, "Cancelling...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Cancel booking",
+                    message: `Cancel booking #${bookingId}? The time slot will be released when possible.`,
+                    confirmLabel: "Cancel Booking",
+                    reasonLabel: "Cancellation Reason",
+                    reasonPlaceholder: reason || "Optional note for this cancellation",
+                    danger: true
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/cancel`, {
                     method: "POST",
-                    body: JSON.stringify({ reason })
+                    body: JSON.stringify({ reason: confirmation.reason || reason })
                 });
                 await refreshCustomerWorkspace();
                 app.showToast("Booking cancelled successfully.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
             return;
         }
 
         if (button.dataset.action === "load-reschedule") {
             const specialistId = Number(button.dataset.specialistId);
             const windowStart = dateValueFromIso(button.dataset.startTime);
-            try {
+            await app.withButtonLoading(button, "Loading...", async () => {
                 const slots = await app.api(`/api/slots/specialists/${specialistId}?status=AVAILABLE&fromDate=${windowStart}&days=7`);
                 const select = document.getElementById(`reschedule-select-${bookingId}`);
                 select.innerHTML = ['<option value="">Select a new time slot</option>']
@@ -542,9 +555,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                         ))
                         .join("");
                 app.showToast("Available reschedule slots loaded.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
             return;
         }
 
@@ -557,16 +570,25 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
-            try {
+            await app.withButtonLoading(button, "Submitting...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Reschedule booking",
+                    message: `Submit booking #${bookingId} for the selected new time slot? It will return to pending confirmation.`,
+                    confirmLabel: "Submit Reschedule"
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/reschedule`, {
                     method: "POST",
                     body: JSON.stringify({ newSlotId })
                 });
                 await refreshCustomerWorkspace();
                 app.showToast("Reschedule submitted. The booking is pending confirmation again.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
         }
     }
 

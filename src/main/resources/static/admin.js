@@ -22,7 +22,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         selectedUserId: null,
         selectedSpecialistId: null,
         selectedCategoryId: null,
-        selectedBookingStatus: "ALL"
+        selectedBookingStatus: "ALL",
+        userPage: createPageState(),
+        specialistPage: createPageState(),
+        bookingPage: createPageState(),
+        categoryPage: createPageState()
     };
 
     const elements = {
@@ -46,7 +50,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         categoryForm: document.getElementById("admin-category-form"),
         newCategoryButton: document.getElementById("new-category-button"),
         bookingList: document.getElementById("admin-booking-list"),
-        bookingFilterButtons: Array.from(document.querySelectorAll("[data-admin-booking-filter]"))
+        bookingFilterButtons: Array.from(document.querySelectorAll("[data-admin-booking-filter]")),
+        adminSearchForms: Array.from(document.querySelectorAll("[data-admin-search]")),
+        userSearch: document.getElementById("user-search"),
+        specialistSearch: document.getElementById("specialist-search"),
+        bookingSearch: document.getElementById("booking-search"),
+        categorySearch: document.getElementById("category-search"),
+        userPagination: document.getElementById("user-pagination"),
+        specialistPagination: document.getElementById("specialist-pagination"),
+        bookingPagination: document.getElementById("booking-pagination"),
+        categoryPagination: document.getElementById("category-pagination")
     };
 
     const views = {
@@ -64,11 +77,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     function bindEvents() {
         elements.logoutButton?.addEventListener("click", onLogout);
-        elements.refreshButton?.addEventListener("click", refreshCurrentPage);
+        elements.refreshButton?.addEventListener("click", (event) =>
+                app.withButtonLoading(event.currentTarget, "Refreshing...", refreshCurrentPage)
+        );
         elements.userList?.addEventListener("click", onSelectUser);
         elements.specialistList?.addEventListener("click", onSelectSpecialist);
         elements.categoryManagementList?.addEventListener("click", onSelectCategory);
         elements.bookingList?.addEventListener("click", onBookingAction);
+        elements.userPagination?.addEventListener("click", onPaginationAction);
+        elements.specialistPagination?.addEventListener("click", onPaginationAction);
+        elements.bookingPagination?.addEventListener("click", onPaginationAction);
+        elements.categoryPagination?.addEventListener("click", onPaginationAction);
+        elements.adminSearchForms.forEach((form) => form.addEventListener("submit", onAdminSearch));
         elements.userForm?.addEventListener("submit", onSaveUser);
         elements.createSpecialistForm?.addEventListener("submit", onCreateSpecialist);
         elements.specialistForm?.addEventListener("submit", onSaveSpecialist);
@@ -81,6 +101,84 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.headerFullName.textContent = state.currentUser.fullName;
         elements.headerRole.textContent = state.currentUser.role;
         elements.headerRole.className = `role-pill ${state.currentUser.role}`;
+    }
+
+    function createPageState() {
+        return {
+            page: 0,
+            size: 8,
+            keyword: "",
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true
+        };
+    }
+
+    function adminPageParams(pageState) {
+        const params = new URLSearchParams();
+        params.set("page", String(pageState.page));
+        params.set("size", String(pageState.size));
+        if (pageState.keyword) {
+            params.set("keyword", pageState.keyword);
+        }
+        return params;
+    }
+
+    function normalizePageResponse(response, pageState) {
+        if (Array.isArray(response)) {
+            return {
+                content: response,
+                page: 0,
+                size: response.length || pageState.size,
+                totalElements: response.length,
+                totalPages: response.length ? 1 : 0,
+                first: true,
+                last: true
+            };
+        }
+        return response;
+    }
+
+    function applyPageMeta(pageState, page) {
+        pageState.page = page.page || 0;
+        pageState.size = page.size || pageState.size;
+        pageState.totalElements = page.totalElements || 0;
+        pageState.totalPages = page.totalPages || 0;
+        pageState.first = Boolean(page.first);
+        pageState.last = Boolean(page.last);
+    }
+
+    function renderLoading(target, message) {
+        if (target) {
+            target.innerHTML = `<div class="empty-state loading-state">${app.escapeHtml(message)}</div>`;
+        }
+    }
+
+    function renderPagination(scope, pageState, target) {
+        if (!target) {
+            return;
+        }
+
+        const total = pageState.totalElements || 0;
+        const totalPages = Math.max(pageState.totalPages || 0, total ? 1 : 0);
+
+        if (!total) {
+            target.innerHTML = "";
+            return;
+        }
+
+        const currentPage = pageState.page || 0;
+        const start = currentPage * pageState.size + 1;
+        const end = Math.min(total, (currentPage + 1) * pageState.size);
+        target.innerHTML = `
+            <span>Showing ${start}-${end} of ${total}</span>
+            <div class="pagination-actions">
+                <button class="ghost-button" type="button" data-page-scope="${scope}" data-page-target="${currentPage - 1}" ${pageState.first ? "disabled" : ""}>Previous</button>
+                <strong>Page ${currentPage + 1} / ${totalPages}</strong>
+                <button class="ghost-button" type="button" data-page-scope="${scope}" data-page-target="${currentPage + 1}" ${pageState.last ? "disabled" : ""}>Next</button>
+            </div>
+        `;
     }
 
     async function refreshCurrentPage() {
@@ -190,12 +288,32 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        if (!state.categories.length) {
-            elements.categoryManagementList.innerHTML = '<div class="empty-state">No categories are configured yet</div>';
+        const filteredCategories = state.categories.filter((category) => matchesCategorySearch(category));
+        const totalPages = Math.ceil(filteredCategories.length / state.categoryPage.size);
+        if (state.categoryPage.page >= totalPages) {
+            state.categoryPage.page = Math.max(totalPages - 1, 0);
+        }
+
+        const start = state.categoryPage.page * state.categoryPage.size;
+        const categories = filteredCategories.slice(start, start + state.categoryPage.size);
+        state.categoryPage.totalElements = filteredCategories.length;
+        state.categoryPage.totalPages = totalPages;
+        state.categoryPage.first = state.categoryPage.page === 0;
+        state.categoryPage.last = state.categoryPage.page >= Math.max(totalPages - 1, 0);
+
+        if (!categories.some((category) => category.id === state.selectedCategoryId)) {
+            state.selectedCategoryId = categories.length ? categories[0].id : null;
+        }
+
+        if (!filteredCategories.length) {
+            elements.categoryManagementList.innerHTML = state.categoryPage.keyword
+                    ? '<div class="empty-state">No categories match the current search</div>'
+                    : '<div class="empty-state">No categories are configured yet</div>';
+            renderPagination("categories", state.categoryPage, elements.categoryPagination);
             return;
         }
 
-        elements.categoryManagementList.innerHTML = state.categories.map((category) => `
+        elements.categoryManagementList.innerHTML = categories.map((category) => `
             <article class="management-card ${state.selectedCategoryId === category.id ? "active" : ""}">
                 <button type="button" class="management-select" data-category-id="${category.id}">
                     <div class="card-head">
@@ -211,6 +329,18 @@ document.addEventListener("DOMContentLoaded", async () => {
                 </button>
             </article>
         `).join("");
+        renderPagination("categories", state.categoryPage, elements.categoryPagination);
+    }
+
+    function matchesCategorySearch(category) {
+        const keyword = state.categoryPage.keyword;
+        if (!keyword) {
+            return true;
+        }
+
+        return [category.name, category.description, category.active ? "active" : "inactive"]
+                .filter(Boolean)
+                .some((value) => String(value).toLowerCase().includes(keyword));
     }
 
     function renderCategoryOptions() {
@@ -254,13 +384,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function loadUsers() {
-        state.users = await app.api("/api/users");
+        renderLoading(elements.userList, "Loading user accounts...");
+        const params = adminPageParams(state.userPage);
+        const page = normalizePageResponse(await app.api(`/api/users?${params.toString()}`), state.userPage);
+        state.users = page.content || [];
+        applyPageMeta(state.userPage, page);
 
         if (!state.users.some((user) => user.id === state.selectedUserId)) {
             state.selectedUserId = state.users.length ? state.users[0].id : null;
         }
 
         renderUsers();
+        renderPagination("users", state.userPage, elements.userPagination);
         populateUserForm();
     }
 
@@ -323,13 +458,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function loadSpecialists() {
-        state.specialists = await app.api("/api/specialists/manage");
+        renderLoading(elements.specialistList, "Loading specialist profiles...");
+        const params = adminPageParams(state.specialistPage);
+        const page = normalizePageResponse(await app.api(`/api/specialists/manage?${params.toString()}`), state.specialistPage);
+        state.specialists = page.content || [];
+        applyPageMeta(state.specialistPage, page);
 
         if (!state.specialists.some((profile) => profile.id === state.selectedSpecialistId)) {
             state.selectedSpecialistId = state.specialists.length ? state.specialists[0].id : null;
         }
 
         renderSpecialists();
+        renderPagination("specialists", state.specialistPage, elements.specialistPagination);
         populateSpecialistForm();
     }
 
@@ -395,11 +535,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     async function loadBookings() {
-        const query = state.selectedBookingStatus === "ALL"
-            ? ""
-            : `?status=${encodeURIComponent(state.selectedBookingStatus)}`;
-        state.bookings = await app.api(`/api/bookings/manage${query}`);
+        renderLoading(elements.bookingList, "Loading bookings...");
+        const params = adminPageParams(state.bookingPage);
+        if (state.selectedBookingStatus !== "ALL") {
+            params.set("status", state.selectedBookingStatus);
+        }
+        const page = normalizePageResponse(await app.api(`/api/bookings/manage?${params.toString()}`), state.bookingPage);
+        state.bookings = page.content || [];
+        applyPageMeta(state.bookingPage, page);
         renderBookings();
+        renderPagination("bookings", state.bookingPage, elements.bookingPagination);
     }
 
     function renderBookings() {
@@ -510,7 +655,63 @@ document.addEventListener("DOMContentLoaded", async () => {
     function onSelectBookingFilter(event) {
         const button = event.currentTarget;
         state.selectedBookingStatus = button.dataset.adminBookingFilter || "ALL";
+        state.bookingPage.page = 0;
         loadBookings().catch((error) => app.showToast(error.message, "error", "toast"));
+    }
+
+    function onAdminSearch(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const scope = form.dataset.adminSearch;
+        const keyword = (form.querySelector('input[type="search"]')?.value || "").trim().toLowerCase();
+
+        app.withFormLoading(form, "Searching...", async () => {
+            if (scope === "users") {
+                state.userPage.keyword = keyword;
+                state.userPage.page = 0;
+                await loadUsers();
+            } else if (scope === "specialists") {
+                state.specialistPage.keyword = keyword;
+                state.specialistPage.page = 0;
+                await loadSpecialists();
+            } else if (scope === "bookings") {
+                state.bookingPage.keyword = keyword;
+                state.bookingPage.page = 0;
+                await loadBookings();
+            } else if (scope === "categories") {
+                state.categoryPage.keyword = keyword;
+                state.categoryPage.page = 0;
+                renderCategories();
+                populateCategoryForm();
+            }
+        }).catch((error) => app.showToast(error.message, "error", "toast"));
+    }
+
+    function onPaginationAction(event) {
+        const button = event.target.closest("[data-page-scope]");
+        if (!button || button.disabled) {
+            return;
+        }
+
+        const scope = button.dataset.pageScope;
+        const targetPage = Math.max(Number(button.dataset.pageTarget || 0), 0);
+
+        app.withButtonLoading(button, "Loading...", async () => {
+            if (scope === "users") {
+                state.userPage.page = targetPage;
+                await loadUsers();
+            } else if (scope === "specialists") {
+                state.specialistPage.page = targetPage;
+                await loadSpecialists();
+            } else if (scope === "bookings") {
+                state.bookingPage.page = targetPage;
+                await loadBookings();
+            } else if (scope === "categories") {
+                state.categoryPage.page = targetPage;
+                renderCategories();
+                populateCategoryForm();
+            }
+        }).catch((error) => app.showToast(error.message, "error", "toast"));
     }
 
     function onStartNewCategory() {
@@ -521,17 +722,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     async function onSaveUser(event) {
         event.preventDefault();
+        const form = event.currentTarget;
         const userId = Number(document.getElementById("edit-user-id").value);
-        const payload = app.formToObject(event.currentTarget);
+        const payload = app.formToObject(form);
         payload.active = payload.active === "true";
 
-        try {
+        await app.withFormLoading(form, "Saving...", async () => {
             const updated = await app.api(`/api/users/${userId}`, {
                 method: "PUT",
                 body: JSON.stringify(payload)
             });
             state.selectedUserId = updated.id;
-            app.showToast("User account updated successfully.", "success", "toast");
+            app.showFormSuccess(form, "User account updated successfully.");
             await loadUsers();
 
             if (updated.id === state.currentUser.id) {
@@ -550,9 +752,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                     return;
                 }
             }
-        } catch (error) {
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 
     async function onCreateSpecialist(event) {
@@ -565,7 +767,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         app.clearFormErrors(form);
 
-        try {
+        await app.withFormLoading(form, "Creating...", async () => {
             const created = await app.api("/api/specialists", {
                 method: "POST",
                 body: JSON.stringify(payload)
@@ -573,39 +775,41 @@ document.addEventListener("DOMContentLoaded", async () => {
             form.reset();
             app.clearFormErrors(form);
             state.selectedSpecialistId = created.id;
-            app.showToast("Specialist profile created successfully.", "success", "toast");
+            app.showFormSuccess(form, "Specialist profile created successfully.");
             await loadSpecialists();
-        } catch (error) {
+        }).catch((error) => {
             app.renderFormErrors(form, error);
-        }
+        });
     }
 
     async function onSaveSpecialist(event) {
         event.preventDefault();
+        const form = event.currentTarget;
         const specialistId = Number(document.getElementById("edit-specialist-id").value);
-        const payload = app.formToObject(event.currentTarget);
+        const payload = app.formToObject(form);
         payload.categoryId = Number(payload.categoryId);
         payload.baseFee = Number(payload.baseFee);
 
-        try {
+        await app.withFormLoading(form, "Saving...", async () => {
             const updated = await app.api(`/api/specialists/${specialistId}`, {
                 method: "PUT",
                 body: JSON.stringify(payload)
             });
             state.selectedSpecialistId = updated.id;
-            app.showToast("Specialist profile updated successfully.", "success", "toast");
+            app.showFormSuccess(form, "Specialist profile updated successfully.");
             await loadSpecialists();
-        } catch (error) {
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 
     async function onSaveCategory(event) {
         event.preventDefault();
-        const payload = app.formToObject(event.currentTarget);
+        const form = event.currentTarget;
+        const payload = app.formToObject(form);
         payload.active = payload.active === "true";
 
-        try {
+        await app.withFormLoading(form, "Saving...", async () => {
             let saved;
             if (state.selectedCategoryId) {
                 saved = await app.api(`/api/categories/${state.selectedCategoryId}`, {
@@ -619,14 +823,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                 });
             }
             state.selectedCategoryId = saved.id;
-            app.showToast("Category saved successfully.", "success", "toast");
+            app.showFormSuccess(form, "Category saved successfully.");
             await loadCategories();
             if (views.specialists) {
                 await loadSpecialists();
             }
-        } catch (error) {
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 
     async function onBookingAction(event) {
@@ -638,6 +842,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const action = button.dataset.bookingAction;
         const actionContainer = button.closest("[data-booking-id]");
         const bookingId = actionContainer ? Number(actionContainer.dataset.bookingId) : NaN;
+        const booking = state.bookings.find((item) => item.id === bookingId);
 
         if (!bookingId) {
             return;
@@ -654,34 +859,67 @@ document.addEventListener("DOMContentLoaded", async () => {
             endpoint = `/api/bookings/${bookingId}/complete`;
             successMessage = "Booking marked as completed.";
         } else if (action === "reject") {
-            const reason = window.prompt("Enter a rejection reason (optional):", "");
-            if (reason === null) {
-                return;
-            }
             endpoint = `/api/bookings/${bookingId}/reject`;
-            body = JSON.stringify({ reason });
             successMessage = "Booking rejected successfully.";
         } else if (action === "cancel") {
-            const reason = window.prompt("Enter a cancellation reason (optional):", "");
-            if (reason === null) {
-                return;
-            }
             endpoint = `/api/bookings/${bookingId}/cancel`;
-            body = JSON.stringify({ reason });
             successMessage = "Booking cancelled successfully.";
         } else {
             return;
         }
 
-        try {
+        await app.withButtonLoading(button, "Working...", async () => {
+            const confirmation = await confirmBookingWorkflowAction(action, booking);
+            if (!confirmation.confirmed) {
+                return;
+            }
+
+            if (action === "reject" || action === "cancel") {
+                body = JSON.stringify({ reason: confirmation.reason });
+            }
+
             await app.api(endpoint, body ? { method: "POST", body } : { method: "POST" });
             app.showToast(successMessage, "success", "toast");
             await loadBookings();
             if (views.summary) {
                 await loadSummary();
             }
-        } catch (error) {
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
+    }
+
+    function confirmBookingWorkflowAction(action, booking) {
+        const topic = booking ? `"${booking.topic}"` : `booking #${booking?.id || ""}`;
+        const labels = {
+            confirm: {
+                title: "Confirm booking",
+                message: `Confirm ${topic} and keep the slot reserved for the customer?`,
+                confirmLabel: "Confirm Booking"
+            },
+            complete: {
+                title: "Mark booking completed",
+                message: `Mark ${topic} as completed? This will close the linked time slot.`,
+                confirmLabel: "Mark Completed"
+            },
+            reject: {
+                title: "Reject booking",
+                message: `Reject ${topic} and release the linked time slot?`,
+                confirmLabel: "Reject Booking",
+                reasonLabel: "Rejection Reason",
+                reasonPlaceholder: "Optional note for this action",
+                danger: true
+            },
+            cancel: {
+                title: "Cancel booking",
+                message: `Cancel ${topic} and release the linked time slot when possible?`,
+                confirmLabel: "Cancel Booking",
+                reasonLabel: "Cancellation Reason",
+                reasonPlaceholder: "Optional note for this action",
+                danger: true
+            }
+        };
+
+        return app.confirmAction(labels[action] || {});
     }
 });

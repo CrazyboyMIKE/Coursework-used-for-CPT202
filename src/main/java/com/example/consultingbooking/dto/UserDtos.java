@@ -14,7 +14,7 @@ public final class UserDtos {
 
     public record CreateUserRequest(
             @NotBlank @Size(max = 50) String username,
-            @NotBlank @Size(min = 6, max = 100) String password,
+            @NotBlank @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters") String password,
             @NotBlank @Size(max = 100) String fullName,
             @NotBlank @Email @Size(max = 120) String email,
             @Size(max = 30) String phone,

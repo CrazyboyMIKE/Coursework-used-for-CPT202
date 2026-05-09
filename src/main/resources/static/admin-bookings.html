@@ -56,7 +56,16 @@
             <button class="status-filter" type="button" data-admin-booking-filter="REJECTED">Rejected</button>
         </div>
 
+        <form class="admin-list-toolbar" data-admin-search="bookings">
+            <label>
+                <span class="muted-label">Search Bookings</span>
+                <input id="booking-search" type="search" placeholder="Topic, customer, specialist, booking ID, or notes">
+            </label>
+            <button class="ghost-button" type="submit">Search</button>
+        </form>
+
         <div class="management-list booking-admin-list" id="admin-booking-list"></div>
+        <div id="booking-pagination" class="pagination-bar"></div>
     </section>
 </main>
 

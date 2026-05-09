@@ -1,5 +1,6 @@
 package com.example.consultingbooking.service;
 
+import com.example.consultingbooking.dto.PageDtos;
 import com.example.consultingbooking.dto.UserDtos;
 import com.example.consultingbooking.entity.UserAccount;
 import com.example.consultingbooking.entity.UserRole;
@@ -7,6 +8,7 @@ import com.example.consultingbooking.exception.BusinessException;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -62,6 +64,17 @@ public class UserService {
         return userAccountRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
                 .map(this::mapUser)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PageDtos.PageResponse<UserDtos.UserResponse> listUsers(
+            UserAccount operator,
+            String keyword,
+            Pageable pageable
+    ) {
+        authService.ensureRole(operator, UserRole.ADMIN);
+        return PageDtos.PageResponse.from(userAccountRepository.searchForAdmin(normalizeKeyword(keyword), pageable)
+                .map(this::mapUser));
     }
 
     @Transactional
@@ -128,6 +141,14 @@ public class UserService {
         }
 
         String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeKeyword(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim().toLowerCase();
         return trimmed.isEmpty() ? null : trimmed;
     }
 }

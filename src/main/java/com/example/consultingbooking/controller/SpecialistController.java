@@ -1,5 +1,6 @@
 package com.example.consultingbooking.controller;
 
+import com.example.consultingbooking.dto.PageDtos;
 import com.example.consultingbooking.dto.SpecialistDtos;
 import com.example.consultingbooking.entity.UserAccount;
 import com.example.consultingbooking.service.AuthService;
@@ -8,6 +9,8 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -51,9 +54,14 @@ public class SpecialistController {
     }
 
     @GetMapping("/manage")
-    public List<SpecialistDtos.SpecialistResponse> manage(@RequestHeader(AuthService.AUTH_HEADER) String token) {
+    public PageDtos.PageResponse<SpecialistDtos.SpecialistResponse> manage(
+            @RequestHeader(AuthService.AUTH_HEADER) String token,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
+            @RequestParam(required = false) String keyword
+    ) {
         UserAccount operator = authService.requireUser(token);
-        return specialistService.listSpecialistsForManagement(operator);
+        return specialistService.listSpecialistsForManagement(operator, keyword, pageRequest(page, size));
     }
 
     @GetMapping("/me")
@@ -80,5 +88,11 @@ public class SpecialistController {
     ) {
         UserAccount operator = authService.requireUser(token);
         return specialistService.updateSpecialist(operator, id, request);
+    }
+
+    private PageRequest pageRequest(int page, int size) {
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.min(Math.max(size, 1), 50);
+        return PageRequest.of(normalizedPage, normalizedSize, Sort.by(Sort.Direction.ASC, "id"));
     }
 }

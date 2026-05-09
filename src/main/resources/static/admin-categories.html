@@ -50,7 +50,15 @@
         <div class="management-grid wide-grid">
             <div class="content-card">
                 <h3>Category Directory</h3>
+                <form class="admin-list-toolbar" data-admin-search="categories">
+                    <label>
+                        <span class="muted-label">Search Categories</span>
+                        <input id="category-search" type="search" placeholder="Name or description">
+                    </label>
+                    <button class="ghost-button" type="submit">Search</button>
+                </form>
                 <div id="category-management-list" class="management-list"></div>
+                <div id="category-pagination" class="pagination-bar"></div>
             </div>
 
             <form id="admin-category-form" class="content-card stack-form editor-card">

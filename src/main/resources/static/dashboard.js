@@ -202,17 +202,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         event.preventDefault();
         const form = event.currentTarget;
 
-        try {
+        await app.withFormLoading(form, "Saving...", async () => {
             state.user = await app.api("/api/users/me", {
                 method: "PUT",
                 body: JSON.stringify(app.formToObject(form))
             });
             renderSession();
             await refreshRoleWorkspace();
-            app.showToast("Profile updated successfully.", "success", "toast");
-        } catch (error) {
+            app.showFormSuccess(form, "Profile updated successfully.");
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 
     async function loadCategories() {
@@ -370,7 +370,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         payload.specialistId = Number(payload.specialistId);
         payload.slotId = Number(payload.slotId);
 
-        try {
+        await app.withFormLoading(form, "Submitting...", async () => {
             await app.api("/api/bookings", {
                 method: "POST",
                 body: JSON.stringify(payload)
@@ -378,10 +378,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             resetBookingComposer();
             await refreshCustomerWorkspace();
             await searchSpecialists();
-            app.showToast("Booking submitted and waiting for confirmation.", "success", "toast");
-        } catch (error) {
+            app.showFormSuccess(form, "Booking submitted and waiting for confirmation.");
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 
     function onBookingSpecialistQueryInput(event) {
@@ -805,24 +805,36 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (button.dataset.action === "cancel-booking") {
             const reason = document.getElementById(`customer-reason-${bookingId}`).value;
-            try {
+            await app.withButtonLoading(button, "Cancelling...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Cancel booking",
+                    message: `Cancel booking #${bookingId}? The time slot will be released when possible.`,
+                    confirmLabel: "Cancel Booking",
+                    reasonLabel: "Cancellation Reason",
+                    reasonPlaceholder: reason || "Optional note for this cancellation",
+                    danger: true
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/cancel`, {
                     method: "POST",
-                    body: JSON.stringify({ reason })
+                    body: JSON.stringify({ reason: confirmation.reason || reason })
                 });
                 await refreshCustomerWorkspace();
                 await searchSpecialists();
                 app.showToast("Booking cancelled successfully.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
             return;
         }
 
         if (button.dataset.action === "load-reschedule") {
             const specialistId = Number(button.dataset.specialistId);
             const windowStart = dateValueFromIso(button.dataset.startTime);
-            try {
+            await app.withButtonLoading(button, "Loading...", async () => {
                 const slots = await app.api(`/api/slots/specialists/${specialistId}?status=AVAILABLE&fromDate=${windowStart}&days=7`);
                 const select = document.getElementById(`reschedule-select-${bookingId}`);
                 select.innerHTML = ['<option value="">Select a new time slot</option>']
@@ -831,9 +843,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                         ))
                         .join("");
                 app.showToast("Available reschedule slots loaded.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
             return;
         }
 
@@ -846,7 +858,16 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return;
             }
 
-            try {
+            await app.withButtonLoading(button, "Submitting...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Reschedule booking",
+                    message: `Submit booking #${bookingId} for the selected new time slot? It will return to pending confirmation.`,
+                    confirmLabel: "Submit Reschedule"
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/reschedule`, {
                     method: "POST",
                     body: JSON.stringify({ newSlotId })
@@ -854,9 +875,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 await refreshCustomerWorkspace();
                 await searchSpecialists();
                 app.showToast("Reschedule submitted. The booking is pending confirmation again.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
         }
     }
 
@@ -901,26 +922,43 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        if (!slots.length) {
-            elements.specialistSlots.innerHTML = '<div class="empty-state">No time slots are currently published in the next 14 days.</div>';
-            return;
-        }
+        const slotsByDay = slots.reduce((groups, slot) => {
+            const key = localDateKey(new Date(slot.startTime));
+            groups.set(key, (groups.get(key) || []).concat(slot));
+            return groups;
+        }, new Map());
+        const days = Array.from({ length: 14 }, (_, offset) => {
+            const date = new Date();
+            date.setHours(0, 0, 0, 0);
+            date.setDate(date.getDate() + offset);
+            return date;
+        });
 
-        elements.specialistSlots.innerHTML = slots.map((slot) => `
-            <article class="slot-item ${slot.status !== "AVAILABLE" ? "slot-muted" : ""}">
-                <div class="card-head">
-                    <div>
-                        <strong>${app.formatDateTime(slot.startTime)} - ${app.formatDateTime(slot.endTime)}</strong>
-                        <p>${specialistSlotStatusNote(slot.status)}</p>
+        elements.specialistSlots.className = "slot-calendar";
+        elements.specialistSlots.innerHTML = days.map((day) => {
+            const key = localDateKey(day);
+            const daySlots = (slotsByDay.get(key) || [])
+                    .slice()
+                    .sort((left, right) => new Date(left.startTime) - new Date(right.startTime));
+
+            return `
+                <article class="calendar-day ${daySlots.length ? "" : "calendar-day-empty"}">
+                    <div class="calendar-day-head">
+                        <strong>${formatCalendarDay(day)}</strong>
+                        <span>${daySlots.length} slot${daySlots.length === 1 ? "" : "s"}</span>
                     </div>
-                    <span class="status-pill ${slot.status}">${slot.status}</span>
-                </div>
-                <div class="meta-block">
-                    <span>Time Slot ID: <strong>${slot.id}</strong></span>
-                    <span>Availability: <strong>${specialistSlotAvailability(slot.status)}</strong></span>
-                </div>
-            </article>
-        `).join("");
+                    <div class="calendar-slot-stack">
+                        ${daySlots.length ? daySlots.map((slot) => `
+                            <div class="calendar-slot ${slot.status}">
+                                <span>${formatTimeRange(slot.startTime, slot.endTime)}</span>
+                                <span class="status-pill ${slot.status}">${slot.status}</span>
+                                <small>ID ${slot.id} / ${specialistSlotAvailability(slot.status)}</small>
+                            </div>
+                        `).join("") : '<p class="calendar-empty-note">No published slots</p>'}
+                    </div>
+                </article>
+            `;
+        }).join("");
     }
 
     async function onCreateSlot(event) {
@@ -936,7 +974,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
-        try {
+        await app.withFormLoading(form, "Creating...", async () => {
             await app.api(`/api/slots/specialists/${state.specialistProfile.id}`, {
                 method: "POST",
                 body: JSON.stringify(payload)
@@ -944,10 +982,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             form.reset();
             app.clearFormErrors(form);
             await refreshSpecialistWorkspace();
-            app.showToast("Time slot created successfully.", "success", "toast");
-        } catch (error) {
+            app.showFormSuccess(form, "Time slot created successfully.");
+        }).catch((error) => {
             app.renderFormErrors(form, error);
-        }
+        });
     }
 
     function validateSlotForm(form, showSummary) {
@@ -1031,39 +1069,69 @@ document.addEventListener("DOMContentLoaded", async () => {
         const bookingId = Number(button.dataset.bookingId);
 
         if (button.dataset.action === "confirm-booking") {
-            try {
+            await app.withButtonLoading(button, "Confirming...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Confirm booking",
+                    message: `Confirm booking #${bookingId} and keep the time slot reserved?`,
+                    confirmLabel: "Confirm Booking"
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/confirm`, { method: "POST" });
                 await refreshSpecialistWorkspace();
                 app.showToast("Booking confirmed successfully.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
             return;
         }
 
         if (button.dataset.action === "reject-booking") {
             const reason = document.getElementById(`specialist-reason-${bookingId}`).value;
-            try {
+            await app.withButtonLoading(button, "Rejecting...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Reject booking",
+                    message: `Reject booking #${bookingId} and release the time slot?`,
+                    confirmLabel: "Reject Booking",
+                    reasonLabel: "Rejection Reason",
+                    reasonPlaceholder: reason || "Optional note for this rejection",
+                    danger: true
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/reject`, {
                     method: "POST",
-                    body: JSON.stringify({ reason })
+                    body: JSON.stringify({ reason: confirmation.reason || reason })
                 });
                 await refreshSpecialistWorkspace();
                 app.showToast("Booking rejected successfully.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
             return;
         }
 
         if (button.dataset.action === "complete-booking") {
-            try {
+            await app.withButtonLoading(button, "Completing...", async () => {
+                const confirmation = await app.confirmAction({
+                    title: "Complete booking",
+                    message: `Mark booking #${bookingId} as completed? This will close the linked time slot.`,
+                    confirmLabel: "Mark Completed"
+                });
+                if (!confirmation.confirmed) {
+                    return;
+                }
+
                 await app.api(`/api/bookings/${bookingId}/complete`, { method: "POST" });
                 await refreshSpecialistWorkspace();
                 app.showToast("Booking marked as completed.", "success", "toast");
-            } catch (error) {
+            }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
-            }
+            });
         }
     }
 
@@ -1215,6 +1283,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         return "This slot is no longer available for booking.";
     }
 
+    function localDateKey(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
+    function formatCalendarDay(date) {
+        return new Intl.DateTimeFormat("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "2-digit"
+        }).format(date);
+    }
+
+    function formatTimeRange(startTime, endTime) {
+        const formatter = new Intl.DateTimeFormat("en-US", {
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+        return `${formatter.format(new Date(startTime))} - ${formatter.format(new Date(endTime))}`;
+    }
+
     function formatDuration(startTime, endTime) {
         const minutes = Math.max(0, Math.round((new Date(endTime) - new Date(startTime)) / 60000));
         if (minutes >= 60 && minutes % 60 === 0) {
@@ -1279,34 +1370,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         event.preventDefault();
         const form = event.currentTarget;
 
-        try {
+        await app.withFormLoading(form, "Saving...", async () => {
             await app.api("/api/categories", {
                 method: "POST",
                 body: JSON.stringify(app.formToObject(form))
             });
             form.reset();
             await refreshAdminWorkspace();
-            app.showToast("Category created successfully.", "success", "toast");
-        } catch (error) {
+            app.showFormSuccess(form, "Category created successfully.");
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 
     async function onCreateUser(event) {
         event.preventDefault();
         const form = event.currentTarget;
 
-        try {
+        await app.withFormLoading(form, "Creating...", async () => {
             const created = await app.api("/api/users", {
                 method: "POST",
                 body: JSON.stringify(app.formToObject(form))
             });
             form.reset();
             elements.createdUserTip.textContent = `Latest created user ID: ${created.id} (${created.username})`;
-            app.showToast("User account created successfully.", "success", "toast");
-        } catch (error) {
+            app.showFormSuccess(form, "User account created successfully.");
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 
     async function onCreateSpecialistProfile(event) {
@@ -1317,16 +1408,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         payload.categoryId = Number(payload.categoryId);
         payload.baseFee = Number(payload.baseFee);
 
-        try {
+        await app.withFormLoading(form, "Creating...", async () => {
             await app.api("/api/specialists", {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
             form.reset();
             await searchSpecialists();
-            app.showToast("Specialist profile created successfully.", "success", "toast");
-        } catch (error) {
+            app.showFormSuccess(form, "Specialist profile created successfully.");
+        }).catch((error) => {
             app.showToast(error.message, "error", "toast");
-        }
+        });
     }
 });

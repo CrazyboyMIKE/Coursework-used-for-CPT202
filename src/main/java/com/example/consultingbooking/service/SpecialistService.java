@@ -1,5 +1,6 @@
 package com.example.consultingbooking.service;
 
+import com.example.consultingbooking.dto.PageDtos;
 import com.example.consultingbooking.dto.SpecialistDtos;
 import com.example.consultingbooking.entity.SlotStatus;
 import com.example.consultingbooking.entity.SpecialistProfile;
@@ -13,6 +14,7 @@ import com.example.consultingbooking.repository.TimeSlotRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -122,6 +124,17 @@ public class SpecialistService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public PageDtos.PageResponse<SpecialistDtos.SpecialistResponse> listSpecialistsForManagement(
+            UserAccount operator,
+            String keyword,
+            Pageable pageable
+    ) {
+        authService.ensureRole(operator, UserRole.ADMIN);
+        return PageDtos.PageResponse.from(specialistProfileRepository.searchForManagement(normalizeKeyword(keyword), pageable)
+                .map(this::mapSpecialist));
+    }
+
     public SpecialistProfile getEntity(Long specialistId) {
         return specialistProfileRepository.findById(specialistId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Specialist not found"));
@@ -197,6 +210,11 @@ public class SpecialistService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeKeyword(String value) {
+        String normalized = normalizeOptionalText(value);
+        return normalized == null ? null : normalized.toLowerCase();
     }
 
     private String normalizeCurrency(String value) {
