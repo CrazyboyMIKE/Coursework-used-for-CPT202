@@ -37,8 +37,8 @@ public final class AuthDtos {
     }
 
     public record LoginRequest(
-            @NotBlank String username,
-            @NotBlank String password
+            @NotBlank @Size(max = 120) String username,
+            @NotBlank @Size(max = 255) String password
     ) {
     }
 
@@ -58,7 +58,7 @@ public final class AuthDtos {
     }
 
     public record PasswordResetRequest(
-            @NotBlank String identifier
+            @NotBlank @Size(max = 120) String identifier
     ) {
     }
 
@@ -70,7 +70,7 @@ public final class AuthDtos {
     }
 
     public record PasswordResetConfirmRequest(
-            @NotBlank String resetCode,
+            @NotBlank @Size(max = 32) String resetCode,
             @NotBlank @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters") String newPassword
     ) {
     }

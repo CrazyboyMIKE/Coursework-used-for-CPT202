@@ -4,6 +4,7 @@ import com.example.consultingbooking.entity.SpecialistStatus;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
@@ -13,8 +14,8 @@ public final class SpecialistDtos {
     }
 
     public record SpecialistRequest(
-            @NotNull(message = "User ID is required") Long userId,
-            @NotNull(message = "Category is required") Long categoryId,
+            @NotNull(message = "User ID is required") @Positive Long userId,
+            @NotNull(message = "Category is required") @Positive Long categoryId,
             @NotBlank(message = "Professional title or certification is required") @Size(max = 120) String level,
             @NotNull(message = "Base fee is required") @DecimalMin(value = "0.0", message = "Base fee must be zero or greater") BigDecimal baseFee,
             String feeCurrency,
@@ -24,7 +25,7 @@ public final class SpecialistDtos {
     }
 
     public record SpecialistUpdateRequest(
-            @NotNull(message = "Category is required") Long categoryId,
+            @NotNull(message = "Category is required") @Positive Long categoryId,
             @NotBlank(message = "Professional title or certification is required") @Size(max = 120) String level,
             @NotNull(message = "Base fee is required") @DecimalMin(value = "0.0", message = "Base fee must be zero or greater") BigDecimal baseFee,
             String feeCurrency,

@@ -14,6 +14,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,6 +44,36 @@ class BookingControllerValidationTest {
                         .content(objectMapper.writeValueAsString(new BookingDtos.ReasonRequest("x".repeat(256)))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors.reason").exists());
+    }
+
+    @Test
+    void createBookingWithNegativeSlotIdReturnsValidationError() throws Exception {
+        mockMvc.perform(post("/api/bookings")
+                        .header(AuthService.AUTH_HEADER, "token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "specialistId": 1,
+                                  "slotId": -1,
+                                  "topic": "Portfolio planning"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.slotId").exists());
+    }
+
+    @Test
+    void invalidBookingStatusQueryParamReturnsTypedError() throws Exception {
+        mockMvc.perform(get("/api/bookings/me")
+                        .header(AuthService.AUTH_HEADER, "token")
+                        .param("status", "NOT_A_STATUS"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST_PARAMETER"))
+                .andExpect(jsonPath("$.fieldErrors.status").exists());
     }
 }
