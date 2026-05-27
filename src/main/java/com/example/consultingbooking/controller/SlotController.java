@@ -52,4 +52,15 @@ public class SlotController {
         UserAccount actor = authService.requireUser(token);
         return slotService.createSlot(actor, specialistId, request);
     }
+
+    @PostMapping("/specialists/{specialistId}/recurring")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SlotDtos.RecurringSlotResponse createRecurringSlots(
+            @RequestHeader(AuthService.AUTH_HEADER) String token,
+            @PathVariable Long specialistId,
+            @Valid @RequestBody SlotDtos.RecurringSlotRequest request
+    ) {
+        UserAccount actor = authService.requireUser(token);
+        return slotService.createRecurringSlots(actor, specialistId, request);
+    }
 }

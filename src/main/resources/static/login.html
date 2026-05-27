@@ -46,14 +46,14 @@
         <div class="auth-card-top">
             <p class="eyebrow">Account Access</p>
             <h2>Account sign-in</h2>
-            <p>Enter your username or email and password to continue to the platform.</p>
+            <p>Enter your username, email, or phone number and password to continue to the platform.</p>
         </div>
 
         <form id="login-form" class="stack-form" method="post" action="/api/auth/login">
             <div class="form-error hidden" data-form-error></div>
             <label>
-                <span>Username or Email</span>
-                <input name="username" type="text" placeholder="Enter your username or email" autocomplete="username" required>
+                <span>Username, Email, or Phone</span>
+                <input name="username" type="text" placeholder="Enter username, email, or phone" autocomplete="username" required>
                 <small class="field-error" data-error-for="username"></small>
             </label>
             <label>

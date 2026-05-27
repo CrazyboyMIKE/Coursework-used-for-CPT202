@@ -10,6 +10,9 @@ import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.TimeSlotRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
@@ -65,6 +68,53 @@ public class ReportingService {
                 bookingRepository.count(),
                 revenue,
                 bookingsByStatus
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public ReportDtos.EarningsResponse myEarnings(UserAccount specialist, LocalDate fromDate, LocalDate toDate) {
+        authService.ensureRole(specialist, UserRole.SPECIALIST);
+        LocalDate effectiveFrom = fromDate == null ? LocalDate.now().minusMonths(1) : fromDate;
+        LocalDate effectiveTo = toDate == null ? LocalDate.now() : toDate;
+        if (effectiveTo.isBefore(effectiveFrom)) {
+            throw new com.example.consultingbooking.exception.BusinessException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "End date must not be before start date"
+            );
+        }
+
+        LocalDateTime rangeStart = effectiveFrom.atStartOfDay();
+        LocalDateTime rangeEnd = effectiveTo.plusDays(1).atStartOfDay();
+        java.util.List<ReportDtos.EarningsEntry> entries = bookingRepository
+                .findBySpecialistUserIdAndStatusAndSlotStartTimeGreaterThanEqualAndSlotStartTimeLessThanOrderBySlotStartTimeDesc(
+                        specialist.getId(),
+                        BookingStatus.COMPLETED,
+                        rangeStart,
+                        rangeEnd
+                )
+                .stream()
+                .map(booking -> new ReportDtos.EarningsEntry(
+                        booking.getId(),
+                        booking.getCustomer().getFullName(),
+                        booking.getTopic(),
+                        booking.getSlot().getStartTime(),
+                        booking.getSlot().getEndTime(),
+                        Duration.between(booking.getSlot().getStartTime(), booking.getSlot().getEndTime()).toMinutes(),
+                        booking.getUnitPrice(),
+                        booking.getPricingMultiplier(),
+                        booking.getPrice(),
+                        BusinessConstants.DEFAULT_CURRENCY
+                ))
+                .toList();
+        BigDecimal total = entries.stream()
+                .map(ReportDtos.EarningsEntry::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new ReportDtos.EarningsResponse(
+                effectiveFrom,
+                effectiveTo,
+                total,
+                BusinessConstants.DEFAULT_CURRENCY,
+                entries
         );
     }
 }

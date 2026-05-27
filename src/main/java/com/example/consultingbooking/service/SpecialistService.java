@@ -88,6 +88,23 @@ public class SpecialistService {
         return mapSpecialist(specialistProfileRepository.save(profile));
     }
 
+    @Transactional
+    public SpecialistDtos.SpecialistResponse updateCurrentSpecialist(
+            UserAccount currentUser,
+            SpecialistDtos.SpecialistSelfUpdateRequest request
+    ) {
+        authService.ensureRole(currentUser, UserRole.SPECIALIST);
+
+        SpecialistProfile profile = specialistProfileRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "Specialist profile not found"));
+        profile.setCategory(categoryService.getEntity(request.categoryId()));
+        profile.setLevel(normalizeLevel(request.level()));
+        profile.setBaseFee(request.baseFee());
+        profile.setFeeCurrency(BusinessConstants.DEFAULT_CURRENCY);
+        profile.setBio(TextNormalizer.cleanOptional(request.bio()));
+        return mapSpecialist(specialistProfileRepository.save(profile));
+    }
+
     @Transactional(readOnly = true)
     public List<SpecialistDtos.SpecialistResponse> searchSpecialists(
             Long categoryId,

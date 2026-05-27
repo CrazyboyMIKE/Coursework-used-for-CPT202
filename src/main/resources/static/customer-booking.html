@@ -59,6 +59,17 @@
                             <p class="panel-note" id="booking-slot-browser-title">Choose a specialist to load appointment times</p>
                         </div>
                     </div>
+                    <div class="calendar-toolbar booking-window-toolbar">
+                        <label>
+                            <span>Starting Date</span>
+                            <input id="booking-window-start" type="date">
+                        </label>
+                        <div class="calendar-range-controls">
+                            <button class="ghost-button compact-control" id="booking-window-previous" type="button" aria-label="Previous seven days">&lt;</button>
+                            <button class="ghost-button" id="booking-window-today" type="button">Today</button>
+                            <button class="ghost-button compact-control" id="booking-window-next" type="button" aria-label="Next seven days">&gt;</button>
+                        </div>
+                    </div>
                     <div id="booking-available-slots" class="slot-list empty-state">No specialist selected yet</div>
                 </div>
                 <div id="booking-slot-summary" class="notice-card hidden"></div>
@@ -105,9 +116,22 @@
             <button class="status-filter" type="button" data-customer-filter="CONFIRMED">Confirmed</button>
             <button class="status-filter" type="button" data-customer-filter="CANCELLED">Cancelled</button>
             <button class="status-filter" type="button" data-customer-filter="COMPLETED">Completed</button>
+            <button class="status-filter" type="button" data-customer-filter="REJECTED">Declined</button>
         </div>
 
+        <div class="booking-detail-panel hidden" id="customer-booking-detail"></div>
         <div class="booking-stack" id="customer-bookings"></div>
+    </section>
+
+    <section class="section-block">
+        <div class="panel-head">
+            <div>
+                <p class="eyebrow">Messages</p>
+                <h2>Appointment Notifications</h2>
+            </div>
+            <button class="ghost-button" id="refresh-customer-notifications" type="button">Refresh Messages</button>
+        </div>
+        <div class="notification-list" id="customer-notifications"></div>
     </section>
 </main>
 

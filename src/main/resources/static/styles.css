@@ -840,6 +840,161 @@ textarea:focus {
     margin-bottom: 20px;
 }
 
+.specialist-edit-panel {
+    margin: 20px 0;
+}
+
+.specialist-earnings-card {
+    margin: 20px 0;
+}
+
+.consultation-history-filter {
+    margin-bottom: 18px;
+}
+
+.earnings-filter-form {
+    margin: 14px 0;
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.earnings-filter-form label {
+    min-width: 160px;
+}
+
+.earnings-total {
+    margin-bottom: 12px;
+    color: var(--brand-deep);
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.earnings-entry {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 14px;
+    display: grid;
+    gap: 7px;
+    color: var(--ink);
+    text-align: left;
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+
+.earnings-entry:hover,
+.earnings-entry:focus-visible {
+    border-color: var(--brand);
+    background: var(--brand-soft);
+}
+
+.earnings-detail {
+    margin-top: 14px;
+    padding-top: 14px;
+    display: grid;
+    gap: 12px;
+    border-top: 1px solid var(--line);
+}
+
+.earnings-detail.hidden {
+    display: none;
+}
+
+.notification-list {
+    display: grid;
+    gap: 10px;
+}
+
+.notification-item {
+    padding: 14px;
+    display: grid;
+    gap: 7px;
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+
+.notification-item.unread {
+    border-color: #aed2c2;
+    background: var(--brand-soft);
+}
+
+.notification-item p {
+    color: var(--muted);
+}
+
+.fee-breakdown {
+    margin-top: 10px;
+    padding: 12px;
+    display: grid;
+    gap: 8px;
+    background: var(--surface-muted);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+
+.fee-components {
+    margin-top: 4px;
+    padding-top: 8px;
+    display: grid;
+    gap: 7px;
+    border-top: 1px solid var(--line);
+}
+
+.fee-component-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.booking-detail-panel {
+    margin: 0 0 18px;
+    padding: 18px;
+    display: grid;
+    gap: 13px;
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+
+.booking-detail-panel.hidden {
+    display: none;
+}
+
+.booking-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.booking-detail-grid span {
+    padding: 10px;
+    display: grid;
+    gap: 5px;
+    color: var(--muted);
+    background: var(--surface-muted);
+    border-radius: var(--radius-sm);
+}
+
+.booking-detail-grid strong {
+    color: var(--ink);
+}
+
+.detail-note {
+    color: var(--muted);
+}
+
+.evaluation-form {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+}
+
 .editor-card {
     align-content: start;
 }
@@ -898,6 +1053,52 @@ textarea:focus {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 12px;
+}
+
+.calendar-toolbar {
+    margin: 14px 0 16px;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.booking-window-toolbar label {
+    display: grid;
+    gap: 5px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.booking-window-toolbar input,
+.calendar-range-controls input {
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-strong);
+}
+
+.calendar-range-controls,
+.segmented-control {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.calendar-toolbar .compact-control {
+    width: 44px;
+    min-width: 44px;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+.segmented-control .active {
+    color: var(--surface-strong);
+    background: var(--brand);
+    border-color: var(--brand);
 }
 
 .calendar-day {
@@ -1415,6 +1616,7 @@ button.danger-button:hover {
     .banner-metrics,
     .meta-list,
     .booking-admin-meta,
+    .booking-detail-grid,
     .category-list,
     .slot-calendar,
     .admin-list-toolbar {
@@ -1436,9 +1638,19 @@ button.danger-button:hover {
 
     .pagination-bar,
     .pagination-actions,
-    .modal-actions {
+    .modal-actions,
+    .calendar-toolbar {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .calendar-range-controls {
+        width: 100%;
+    }
+
+    .calendar-range-controls input {
+        flex: 1 1 auto;
+        min-width: 0;
     }
 }
 
@@ -1484,6 +1696,11 @@ button.danger-button:hover {
 
     .calendar-day {
         min-height: 140px;
+    }
+
+    .fee-component-row {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
     .toast {

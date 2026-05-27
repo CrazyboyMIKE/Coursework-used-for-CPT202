@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         selectedUserId: null,
         selectedSpecialistId: null,
         selectedCategoryId: null,
+        creatingCategory: false,
         selectedBookingStatus: "ALL",
         userPage: createPageState(),
         specialistPage: createPageState(),
@@ -261,7 +262,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function loadCategories() {
         state.categories = await app.api("/api/categories");
 
-        if (!state.categories.some((category) => category.id === state.selectedCategoryId)) {
+        if (!state.creatingCategory && !state.categories.some((category) => category.id === state.selectedCategoryId)) {
             state.selectedCategoryId = state.categories.length ? state.categories[0].id : null;
         }
 
@@ -293,7 +294,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         state.categoryPage.first = state.categoryPage.page === 0;
         state.categoryPage.last = state.categoryPage.page >= Math.max(totalPages - 1, 0);
 
-        if (!categories.some((category) => category.id === state.selectedCategoryId)) {
+        if (!state.creatingCategory && !categories.some((category) => category.id === state.selectedCategoryId)) {
             state.selectedCategoryId = categories.length ? categories[0].id : null;
         }
 
@@ -639,6 +640,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
+        state.creatingCategory = false;
         state.selectedCategoryId = Number(button.dataset.categoryId);
         renderCategories();
         populateCategoryForm();
@@ -707,6 +709,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function onStartNewCategory() {
+        state.creatingCategory = true;
         state.selectedCategoryId = null;
         renderCategories();
         populateCategoryForm();
@@ -779,11 +782,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         event.preventDefault();
         const form = event.currentTarget;
         const specialistId = Number(document.getElementById("edit-specialist-id").value);
+        const currentProfile = state.specialists.find((profile) => profile.id === specialistId);
         const payload = app.formToObject(form);
         payload.categoryId = Number(payload.categoryId);
         payload.baseFee = Number(payload.baseFee);
 
         app.clearFormErrors(form);
+        if (currentProfile && currentProfile.status !== payload.status) {
+            const confirmation = await app.confirmAction({
+                title: "Change specialist status",
+                message: `Change ${currentProfile.fullName} from ${currentProfile.status} to ${payload.status}? This controls visibility in the public specialist directory.`,
+                confirmLabel: "Change Status",
+                danger: payload.status === "INACTIVE"
+            });
+            if (!confirmation.confirmed) {
+                return;
+            }
+        }
+
         await app.withFormLoading(form, "Saving...", async () => {
             const updated = await app.api(`/api/specialists/${specialistId}`, {
                 method: "PUT",
@@ -817,6 +833,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     body: JSON.stringify(payload)
                 });
             }
+            state.creatingCategory = false;
             state.selectedCategoryId = saved.id;
             app.showFormSuccess(form, "Category saved successfully.");
             await loadCategories();

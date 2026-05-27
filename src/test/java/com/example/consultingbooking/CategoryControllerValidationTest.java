@@ -2,6 +2,7 @@ package com.example.consultingbooking;
 
 import com.example.consultingbooking.controller.CategoryController;
 import com.example.consultingbooking.entity.UserAccount;
+import com.example.consultingbooking.service.AccessAuditService;
 import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.CategoryService;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,9 @@ class CategoryControllerValidationTest {
 
     @MockBean
     private AuthService authService;
+
+    @MockBean
+    private AccessAuditService accessAuditService;
 
     @Test
     void categoryCreateBlankNameReturnsValidationError() throws Exception {

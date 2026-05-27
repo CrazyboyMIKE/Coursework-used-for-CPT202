@@ -49,8 +49,16 @@ public class Booking {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal unitPrice;
+
+    @Column(nullable = false, precision = 5, scale = 2)
+    private BigDecimal pricingMultiplier;
+
     @Column(length = 255)
     private String lastActionReason;
+
+    private LocalDateTime cancelledAt;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -134,12 +142,36 @@ public class Booking {
         this.price = price;
     }
 
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(BigDecimal unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public BigDecimal getPricingMultiplier() {
+        return pricingMultiplier;
+    }
+
+    public void setPricingMultiplier(BigDecimal pricingMultiplier) {
+        this.pricingMultiplier = pricingMultiplier;
+    }
+
     public String getLastActionReason() {
         return lastActionReason;
     }
 
     public void setLastActionReason(String lastActionReason) {
         this.lastActionReason = lastActionReason;
+    }
+
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(LocalDateTime cancelledAt) {
+        this.cancelledAt = cancelledAt;
     }
 
     public LocalDateTime getCreatedAt() {

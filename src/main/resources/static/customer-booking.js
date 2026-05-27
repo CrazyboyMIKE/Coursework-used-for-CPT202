@@ -21,8 +21,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         selectedBookingSpecialist: null,
         selectedBookingSlots: [],
         selectedSlotId: null,
+        selectedFeeQuote: null,
         selectedSlotWindowStart: todayDateValue(),
         customerStatusFilter: "ALL",
+        selectedBookingDetailId: null,
+        notifications: [],
+        openNotificationIds: new Set(),
         bookingSearchRequestId: 0,
         bookingSearchTimer: null
     };
@@ -37,10 +41,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         bookingSlotBrowserTitle: document.getElementById("booking-slot-browser-title"),
         bookingAvailableSlots: document.getElementById("booking-available-slots"),
         bookingSlotSummary: document.getElementById("booking-slot-summary"),
+        bookingWindowStart: document.getElementById("booking-window-start"),
+        bookingWindowPrevious: document.getElementById("booking-window-previous"),
+        bookingWindowToday: document.getElementById("booking-window-today"),
+        bookingWindowNext: document.getElementById("booking-window-next"),
         bookingSpecialistId: document.getElementById("booking-specialist-id"),
         bookingSlotId: document.getElementById("booking-slot-id"),
         customerFilterBar: document.getElementById("customer-filter-bar"),
-        customerBookings: document.getElementById("customer-bookings")
+        customerBookingDetail: document.getElementById("customer-booking-detail"),
+        customerBookings: document.getElementById("customer-bookings"),
+        customerNotifications: document.getElementById("customer-notifications")
     };
 
     app.consumeFlash("toast");
@@ -49,6 +59,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     resetBookingComposer();
     renderCustomerFilterButtons();
     await refreshCustomerWorkspace();
+    await refreshNotifications();
 
     if (initialSpecialistId) {
         await prefillSpecialist(initialSpecialistId);
@@ -57,12 +68,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     function bindEvents() {
         document.getElementById("logout-button").addEventListener("click", onLogout);
         document.getElementById("refresh-customer-bookings").addEventListener("click", refreshCustomerWorkspace);
+        document.getElementById("refresh-customer-notifications").addEventListener("click", refreshNotifications);
         elements.bookingForm.addEventListener("submit", onCreateBooking);
         elements.bookingSpecialistQuery.addEventListener("input", onBookingSpecialistQueryInput);
         elements.bookingSpecialistSuggestions.addEventListener("click", onBookingSuggestionAction);
         elements.bookingAvailableSlots.addEventListener("click", onBookingSlotSelectionAction);
+        elements.bookingWindowStart.addEventListener("change", onBookingWindowDateChange);
+        elements.bookingWindowPrevious.addEventListener("click", () => shiftBookingWindow(-7));
+        elements.bookingWindowToday.addEventListener("click", () => setBookingWindow(todayDateValue()));
+        elements.bookingWindowNext.addEventListener("click", () => shiftBookingWindow(7));
         elements.customerFilterBar.addEventListener("click", onCustomerFilterChange);
+        elements.customerBookingDetail.addEventListener("click", onBookingDetailAction);
         elements.customerBookings.addEventListener("click", onCustomerBookingAction);
+        elements.customerNotifications.addEventListener("click", onNotificationAction);
     }
 
     function renderHeader() {
@@ -100,6 +118,10 @@ document.addEventListener("DOMContentLoaded", async () => {
             app.setFormError(form, "Please choose an available time slot before creating a booking.");
             return;
         }
+        if (!state.selectedFeeQuote) {
+            app.setFormError(form, "Please wait for the fee estimate before submitting this booking.");
+            return;
+        }
 
         const payload = app.formToObject(form);
         payload.specialistId = Number(payload.specialistId);
@@ -114,6 +136,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             await refreshCustomerWorkspace();
             app.showFormSuccess(form, "Booking submitted and waiting for confirmation.");
         }).catch((error) => {
+            if (error.status === 409) {
+                state.selectedSlotId = null;
+                state.selectedFeeQuote = null;
+                elements.bookingSlotId.value = "";
+                loadSelectedBookingSlots();
+            }
             app.renderFormErrors(form, error, "Unable to submit the booking. Please review the form and try again.");
         });
     }
@@ -246,11 +274,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function selectBookingSpecialist(specialist) {
         state.selectedBookingSpecialist = specialist;
         state.selectedSlotId = null;
+        state.selectedFeeQuote = null;
         state.selectedBookingSlots = [];
         elements.bookingSpecialistId.value = String(specialist.id);
         elements.bookingSlotId.value = "";
         elements.bookingSpecialistQuery.value = `${specialist.fullName} (ID ${specialist.id})`;
         elements.bookingSlotBrowserTitle.textContent = `Available appointment times for ${specialist.fullName}`;
+        syncBookingWindowControl();
         renderBookingSuggestions(elements.bookingSpecialistQuery.value);
         renderBookingSpecialistSummary();
         renderBookingSlotSummary();
@@ -261,13 +291,47 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
+        await loadSelectedBookingSlots();
+    }
+
+    async function loadSelectedBookingSlots() {
+        if (!state.selectedBookingSpecialist || state.selectedBookingSpecialist.status !== "ACTIVE") {
+            return;
+        }
+
         try {
-            state.selectedBookingSlots = await app.api(`/api/slots/specialists/${specialist.id}?fromDate=${state.selectedSlotWindowStart}&days=7`);
+            state.selectedBookingSlots = await app.api(
+                    `/api/slots/specialists/${state.selectedBookingSpecialist.id}?fromDate=${state.selectedSlotWindowStart}&days=7`
+            );
             renderBookingAvailableSlots();
         } catch (error) {
             state.selectedBookingSlots = [];
             renderBookingAvailableSlots(error.message || "Unable to load appointment times.");
         }
+    }
+
+    async function onBookingWindowDateChange(event) {
+        const selectedDate = event.currentTarget.value || todayDateValue();
+        await setBookingWindow(selectedDate);
+    }
+
+    async function shiftBookingWindow(days) {
+        await setBookingWindow(addDays(state.selectedSlotWindowStart, days));
+    }
+
+    async function setBookingWindow(dateValue) {
+        state.selectedSlotWindowStart = dateValue;
+        state.selectedSlotId = null;
+        state.selectedFeeQuote = null;
+        elements.bookingSlotId.value = "";
+        syncBookingWindowControl();
+        renderBookingSlotSummary();
+        updateBookingSubmitState();
+        await loadSelectedBookingSlots();
+    }
+
+    function syncBookingWindowControl() {
+        elements.bookingWindowStart.value = state.selectedSlotWindowStart;
     }
 
     function renderBookingSpecialistSummary() {
@@ -322,27 +386,36 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         elements.bookingAvailableSlots.className = "slot-list";
-        elements.bookingAvailableSlots.innerHTML = state.selectedBookingSlots.map((slot) => `
-            <article class="slot-item ${state.selectedSlotId === slot.id ? "selected" : ""} ${slot.status !== "AVAILABLE" ? "slot-muted" : ""}">
+        elements.bookingAvailableSlots.innerHTML = state.selectedBookingSlots.map((slot) => {
+            const bookable = canSelectBookingSlot(slot);
+            const availabilityText = slot.status !== "AVAILABLE"
+                    ? "Unavailable"
+                    : bookable ? "Select to calculate" : "Time has passed";
+            const buttonText = slot.status !== "AVAILABLE"
+                    ? "Unavailable"
+                    : bookable ? "Choose This Appointment" : "Time Passed";
+            return `
+            <article class="slot-item ${state.selectedSlotId === slot.id ? "selected" : ""} ${bookable ? "" : "slot-muted"}">
                 <div class="slot-time">${app.formatDateTime(slot.startTime)} - ${app.formatDateTime(slot.endTime)}</div>
                 <div class="meta-block">
                     <span>Time Slot ID: <strong>${slot.id}</strong></span>
                     <span>Status: <span class="status-pill ${slot.status}">${slot.status}</span></span>
-                    <span>Estimated Price: <strong>${app.formatCurrency(estimateBookingPrice(state.selectedBookingSpecialist, slot), state.selectedBookingSpecialist.feeCurrency)}</strong></span>
-                    <span>Can Book: <strong>${slot.status === "AVAILABLE" ? "Yes" : "No"}</strong></span>
+                    <span>Fee Estimate: <strong>${availabilityText}</strong></span>
+                    <span>Can Book: <strong>${bookable ? "Yes" : "No"}</strong></span>
                 </div>
                 <button
                     class="ghost-button"
                     type="button"
                     data-action="choose-booking-slot"
                     data-slot-id="${slot.id}"
-                    ${slot.status !== "AVAILABLE" ? "disabled" : ""}
-                >${slot.status === "AVAILABLE" ? "Choose This Appointment" : "Unavailable"}</button>
+                    ${bookable ? "" : "disabled"}
+                >${buttonText}</button>
             </article>
-        `).join("");
+        `;
+        }).join("");
     }
 
-    function onBookingSlotSelectionAction(event) {
+    async function onBookingSlotSelectionAction(event) {
         const button = event.target.closest("[data-action='choose-booking-slot']");
         if (!button) {
             return;
@@ -355,17 +428,41 @@ document.addEventListener("DOMContentLoaded", async () => {
             app.showToast("The selected appointment time could not be found.", "error", "toast");
             return;
         }
+        if (!canSelectBookingSlot(slot)) {
+            app.showToast("Please choose a future available appointment time.", "error", "toast");
+            return;
+        }
 
-        applyBookingSlotSelection(slot);
-        app.showToast(`Appointment time ${slot.id} selected.`, "success", "toast");
+        await applyBookingSlotSelection(slot);
     }
 
-    function applyBookingSlotSelection(slot) {
+    async function applyBookingSlotSelection(slot) {
         state.selectedSlotId = slot.id;
+        state.selectedFeeQuote = null;
         elements.bookingSlotId.value = String(slot.id);
         renderBookingAvailableSlots();
         renderBookingSlotSummary();
         updateBookingSubmitState();
+        try {
+            state.selectedFeeQuote = await app.api("/api/bookings/quote", {
+                method: "POST",
+                body: JSON.stringify({
+                    specialistId: state.selectedBookingSpecialist.id,
+                    slotId: slot.id
+                })
+            });
+            renderBookingSlotSummary();
+            updateBookingSubmitState();
+            app.showToast(`Appointment time ${slot.id} selected and priced.`, "success", "toast");
+        } catch (error) {
+            state.selectedSlotId = null;
+            state.selectedFeeQuote = null;
+            elements.bookingSlotId.value = "";
+            renderBookingAvailableSlots();
+            renderBookingSlotSummary();
+            updateBookingSubmitState();
+            app.showToast(app.friendlyErrorMessage(error, "Unable to calculate the fee for that time slot."), "error", "toast");
+        }
     }
 
     function renderBookingSlotSummary() {
@@ -382,6 +479,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             return;
         }
 
+        const quote = state.selectedFeeQuote;
         elements.bookingSlotSummary.classList.remove("hidden");
         elements.bookingSlotSummary.innerHTML = `
             <div class="card-head">
@@ -394,16 +492,35 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div class="meta-block">
                 <span>Time Slot ID: <strong>${slot.id}</strong></span>
                 <span>Time: <strong>${app.formatDateTime(slot.startTime)} - ${app.formatDateTime(slot.endTime)}</strong></span>
-                <span>Estimated Price: <strong>${app.formatCurrency(estimateBookingPrice(state.selectedBookingSpecialist, slot), state.selectedBookingSpecialist.feeCurrency)}</strong></span>
+                <span>Estimated Price: <strong>${quote ? app.formatCurrency(quote.totalPrice, quote.feeCurrency) : "Calculating..."}</strong></span>
                 <span>Availability: <strong>${slot.status === "AVAILABLE" ? "Ready to book" : "Not available for booking"}</strong></span>
             </div>
+            ${quote ? renderFeeComponents(quote.components, quote.feeCurrency) : ""}
         `;
+    }
+
+    function renderFeeComponents(components, currency) {
+        return `
+            <div class="fee-components">
+                ${components.map((component) => `
+                    <div class="fee-component-row">
+                        <span>${app.escapeHtml(component.label)} / ${component.durationMinutes} min x ${component.multiplier}</span>
+                        <strong>${app.formatCurrency(component.amount, currency)}</strong>
+                    </div>
+                `).join("")}
+            </div>
+        `;
+    }
+
+    function canSelectBookingSlot(slot) {
+        return slot.status === "AVAILABLE" && new Date(slot.startTime).getTime() > Date.now();
     }
 
     function clearBookingSelection(preserveQuery = false) {
         state.selectedBookingSpecialist = null;
         state.selectedBookingSlots = [];
         state.selectedSlotId = null;
+        state.selectedFeeQuote = null;
         elements.bookingSpecialistId.value = "";
         elements.bookingSlotId.value = "";
         elements.bookingSlotBrowserTitle.textContent = "Choose a specialist to load appointment times";
@@ -421,6 +538,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     function resetBookingComposer() {
         state.bookingCandidates = [];
         elements.bookingForm.reset();
+        state.selectedSlotWindowStart = todayDateValue();
+        syncBookingWindowControl();
         clearBookingSelection(false);
         renderBookingSuggestions();
     }
@@ -432,6 +551,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             && state.selectedBookingSpecialist.status === "ACTIVE"
             && elements.bookingSpecialistId.value
             && elements.bookingSlotId.value
+            && state.selectedFeeQuote
         );
     }
 
@@ -473,6 +593,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <span>Scheduled Length: <strong>${formatDuration(booking.startTime, booking.endTime)}</strong></span>
                     <span>Notes: ${app.escapeHtml(booking.notes || "None")}</span>
                 </div>
+                <div class="fee-breakdown" id="fee-breakdown-${booking.id}">
+                    <div class="card-actions">
+                        <button class="ghost-button" type="button" data-action="view-details" data-booking-id="${booking.id}">View Details</button>
+                        <button class="ghost-button" type="button" data-action="view-fee" data-booking-id="${booking.id}">View Fee Breakdown</button>
+                        <button class="ghost-button" type="button" data-action="download-fee" data-booking-id="${booking.id}">Download Fee Document</button>
+                    </div>
+                </div>
+                ${booking.status === "COMPLETED" ? renderEvaluationForm(booking) : ""}
                 <div class="action-grid">
                     <input id="customer-reason-${booking.id}" type="text" placeholder="Cancellation reason or note">
                     <button
@@ -516,12 +644,73 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         const bookingId = Number(button.dataset.bookingId);
 
+        if (button.dataset.action === "view-details") {
+            await app.withButtonLoading(button, "Loading...", async () => {
+                const booking = await app.api(`/api/bookings/details/${bookingId}`);
+                const refund = await loadRefundStatus(booking);
+                state.selectedBookingDetailId = bookingId;
+                renderBookingDetail(booking, refund);
+            }).catch((error) => app.showToast(error.message, "error", "toast"));
+            return;
+        }
+
+        if (button.dataset.action === "view-fee") {
+            await app.withButtonLoading(button, "Loading...", async () => {
+                const breakdown = await app.api(`/api/bookings/${bookingId}/fee-breakdown`);
+                document.getElementById(`fee-breakdown-${bookingId}`).innerHTML = `
+                    <strong>Fee Breakdown</strong>
+                    <span>Unit Price: <strong>${app.formatCurrency(breakdown.unitPrice, breakdown.feeCurrency)} / hour</strong></span>
+                    <span>Duration: <strong>${breakdown.durationMinutes} minutes</strong></span>
+                    <span>Pricing Multiplier: <strong>${breakdown.pricingMultiplier}</strong></span>
+                    <span>Total: <strong>${app.formatCurrency(breakdown.totalPrice, breakdown.feeCurrency)}</strong></span>
+                    ${renderFeeComponents(breakdown.components || [], breakdown.feeCurrency)}
+                    <div class="card-actions">
+                        <button class="ghost-button" type="button" data-action="download-fee" data-booking-id="${bookingId}">Download Fee Document</button>
+                    </div>
+                `;
+            }).catch((error) => app.showToast(error.message, "error", "toast"));
+            return;
+        }
+
+        if (button.dataset.action === "download-fee") {
+            await app.withButtonLoading(button, "Preparing...", async () => {
+                const response = await fetch(`/api/bookings/${bookingId}/fee-breakdown.pdf`, {
+                    headers: { "X-Auth-Token": app.getToken() }
+                });
+                if (!response.ok) {
+                    throw new Error("Unable to download the fee document.");
+                }
+                const downloadUrl = URL.createObjectURL(await response.blob());
+                const link = document.createElement("a");
+                link.href = downloadUrl;
+                link.download = `booking-${bookingId}-fee-breakdown.pdf`;
+                link.click();
+                URL.revokeObjectURL(downloadUrl);
+            }).catch((error) => app.showToast(error.message, "error", "toast"));
+            return;
+        }
+
+        if (button.dataset.action === "submit-evaluation") {
+            const form = document.getElementById(`evaluation-form-${bookingId}`);
+            const payload = app.formToObject(form);
+            payload.rating = Number(payload.rating);
+            await app.withButtonLoading(button, "Submitting...", async () => {
+                await app.api(`/api/evaluations/bookings/${bookingId}`, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                await refreshCustomerWorkspace();
+                app.showToast("Evaluation submitted successfully.", "success", "toast");
+            }).catch((error) => app.renderFormErrors(form, error, "Unable to submit the evaluation."));
+            return;
+        }
+
         if (button.dataset.action === "cancel-booking") {
             const reason = document.getElementById(`customer-reason-${bookingId}`).value;
             await app.withButtonLoading(button, "Cancelling...", async () => {
                 const confirmation = await app.confirmAction({
                     title: "Cancel booking",
-                    message: `Cancel booking #${bookingId}? The time slot will be released when possible.`,
+                    message: `Cancel booking #${bookingId}? Confirmed appointments may only be cancelled more than 24 hours in advance. The system will synchronise the refund outcome; because no online payment is captured here, eligible cancellations are recorded as no transfer required.`,
                     confirmLabel: "Cancel Booking",
                     reasonLabel: "Cancellation Reason",
                     reasonPlaceholder: reason || "Optional note for this cancellation",
@@ -531,12 +720,15 @@ document.addEventListener("DOMContentLoaded", async () => {
                     return;
                 }
 
-                await app.api(`/api/bookings/${bookingId}/cancel`, {
+                const cancelled = await app.api(`/api/bookings/${bookingId}/cancel`, {
                     method: "POST",
                     body: JSON.stringify({ reason: confirmation.reason || reason })
                 });
+                const refund = await loadRefundStatus(cancelled);
                 await refreshCustomerWorkspace();
-                app.showToast("Booking cancelled successfully.", "success", "toast");
+                state.selectedBookingDetailId = bookingId;
+                renderBookingDetail(cancelled, refund);
+                app.showToast("Booking cancelled and refund synchronisation recorded.", "success", "toast");
             }).catch((error) => {
                 app.showToast(error.message, "error", "toast");
             });
@@ -592,6 +784,155 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
+    function renderEvaluationForm(booking) {
+        if (booking.evaluationSubmitted) {
+            return '<div class="form-success visible">Evaluation submitted. Thank you for your feedback.</div>';
+        }
+        return `
+            <form class="stack-form evaluation-form" id="evaluation-form-${booking.id}">
+                <h3>Evaluate Appointment</h3>
+                <div class="form-error hidden" data-form-error></div>
+                <label>
+                    <span>Rating</span>
+                    <select name="rating" required>
+                        <option value="5">5 - Excellent</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Satisfactory</option>
+                        <option value="2">2 - Needs Improvement</option>
+                        <option value="1">1 - Poor</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Comments</span>
+                    <textarea name="comment" rows="3" maxlength="500" required></textarea>
+                    <small class="field-error" data-error-for="comment"></small>
+                </label>
+                <button type="button" data-action="submit-evaluation" data-booking-id="${booking.id}">Submit Evaluation</button>
+            </form>
+        `;
+    }
+
+    async function loadRefundStatus(booking) {
+        if (booking.status !== "CANCELLED") {
+            return null;
+        }
+        try {
+            return await app.api(`/api/bookings/${booking.id}/refund`);
+        } catch (error) {
+            if (error.status === 404) {
+                return null;
+            }
+            throw error;
+        }
+    }
+
+    function renderBookingDetail(booking, refund = null) {
+        elements.customerBookingDetail.classList.remove("hidden");
+        elements.customerBookingDetail.innerHTML = `
+            <div class="card-head">
+                <div>
+                    <p class="eyebrow">Appointment Detail</p>
+                    <h3>${app.escapeHtml(booking.topic)}</h3>
+                </div>
+                <span class="status-pill ${booking.status}">${booking.status}</span>
+            </div>
+            <div class="booking-detail-grid">
+                <span>Booking ID <strong>${booking.id}</strong></span>
+                <span>Specialist <strong>${app.escapeHtml(booking.specialistName)}</strong></span>
+                <span>Start Time <strong>${app.formatDateTime(booking.startTime)}</strong></span>
+                <span>End Time <strong>${app.formatDateTime(booking.endTime)}</strong></span>
+                <span>Estimated Fee <strong>${app.formatCurrency(booking.price, booking.feeCurrency)}</strong></span>
+                <span>Current Status <strong>${booking.status}</strong></span>
+            </div>
+            <p class="detail-note"><strong>Notes:</strong> ${app.escapeHtml(booking.notes || "None")}</p>
+            ${booking.cancelledAt ? `<p class="detail-note"><strong>Cancelled At:</strong> ${app.formatDateTime(booking.cancelledAt)}</p>` : ""}
+            ${booking.status === "CANCELLED" ? renderRefundStatus(refund) : ""}
+            <div class="card-actions">
+                <button class="ghost-button" type="button" data-close-booking-detail>Back to Filtered List</button>
+            </div>
+        `;
+    }
+
+    function renderRefundStatus(refund) {
+        if (!refund) {
+            return '<p class="detail-note"><strong>Refund Synchronisation:</strong> No record is available for this historical appointment.</p>';
+        }
+        return `
+            <p class="detail-note"><strong>Refund Synchronisation:</strong> ${app.escapeHtml(refund.status)}</p>
+            <p class="detail-note"><strong>Refund Amount:</strong> ${app.formatCurrency(refund.amount, refund.currency)}</p>
+            <p class="detail-note">${app.escapeHtml(refund.policyMessage)}</p>
+        `;
+    }
+
+    function onBookingDetailAction(event) {
+        if (!event.target.closest("[data-close-booking-detail]")) {
+            return;
+        }
+        closeBookingDetail();
+    }
+
+    function closeBookingDetail() {
+        state.selectedBookingDetailId = null;
+        elements.customerBookingDetail.classList.add("hidden");
+        elements.customerBookingDetail.innerHTML = "";
+    }
+
+    async function refreshNotifications() {
+        try {
+            state.notifications = await app.api("/api/notifications/me");
+            renderNotifications();
+        } catch (error) {
+            elements.customerNotifications.innerHTML = '<div class="empty-state">Unable to load appointment messages.</div>';
+        }
+    }
+
+    function renderNotifications() {
+        if (!state.notifications.length) {
+                elements.customerNotifications.innerHTML = '<div class="empty-state">No appointment messages have been received.</div>';
+            return;
+        }
+        elements.customerNotifications.innerHTML = state.notifications.map((notification) => {
+            const isOpen = state.openNotificationIds.has(notification.id);
+            return `
+                <article class="notification-item ${notification.read ? "" : "unread"}">
+                    <div class="card-head">
+                        <strong>${app.escapeHtml(notification.title)}</strong>
+                        <span class="status-pill ${notification.read ? "CLOSED" : "ACTIVE"}">${notification.read ? "READ" : "NEW"}</span>
+                    </div>
+                    ${isOpen ? `<p>${app.escapeHtml(notification.message)}</p>` : ""}
+                    <div class="card-actions">
+                        <span class="muted-label">${app.formatDateTime(notification.createdAt)}</span>
+                        <button class="ghost-button" type="button" data-notification-open="${notification.id}">${isOpen ? "Close Message" : "Open Message"}</button>
+                    </div>
+                </article>
+            `;
+        }).join("");
+    }
+
+    async function onNotificationAction(event) {
+        const button = event.target.closest("[data-notification-open]");
+        if (!button) {
+            return;
+        }
+        const notificationId = Number(button.dataset.notificationOpen);
+        if (state.openNotificationIds.has(notificationId)) {
+            state.openNotificationIds.delete(notificationId);
+            renderNotifications();
+            return;
+        }
+        state.openNotificationIds.add(notificationId);
+        const notification = state.notifications.find((item) => item.id === notificationId);
+        if (!notification || notification.read) {
+            renderNotifications();
+            return;
+        }
+        await app.withButtonLoading(button, "Opening...", async () => {
+            const updated = await app.api(`/api/notifications/${notificationId}/read`, { method: "POST" });
+            state.notifications = state.notifications.map((item) => item.id === notificationId ? updated : item);
+            renderNotifications();
+        }).catch((error) => app.showToast(error.message, "error", "toast"));
+    }
+
     function onCustomerFilterChange(event) {
         const button = event.target.closest("[data-customer-filter]");
         if (!button) {
@@ -599,6 +940,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         state.customerStatusFilter = button.dataset.customerFilter;
+        closeBookingDetail();
         renderCustomerFilterButtons();
         refreshCustomerWorkspace();
     }
@@ -683,28 +1025,28 @@ document.addEventListener("DOMContentLoaded", async () => {
         return `${minutes} min`;
     }
 
-    function estimateBookingPrice(specialist, slot) {
-        const minutes = Math.max(0, Math.round((new Date(slot.endTime) - new Date(slot.startTime)) / 60000));
-        const hours = minutes / 60;
-        let amount = Number(specialist.baseFee || 0) * hours;
-        const day = new Date(slot.startTime).getDay();
-
-        if (day === 0 || day === 6) {
-            amount *= 1.15;
-        }
-
-        return Math.round(amount * 100) / 100;
-    }
-
     function hoursUntil(dateTime) {
         return (new Date(dateTime).getTime() - Date.now()) / 3600000;
     }
 
     function todayDateValue() {
-        return new Date().toISOString().slice(0, 10);
+        return localDateValue(new Date());
+    }
+
+    function addDays(value, days) {
+        const date = new Date(`${value}T00:00:00`);
+        date.setDate(date.getDate() + days);
+        return localDateValue(date);
+    }
+
+    function localDateValue(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
     }
 
     function dateValueFromIso(value) {
-        return value ? new Date(value).toISOString().slice(0, 10) : todayDateValue();
+        return value ? localDateValue(new Date(value)) : todayDateValue();
     }
 });

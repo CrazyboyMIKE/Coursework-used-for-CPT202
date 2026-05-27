@@ -2,6 +2,7 @@ package com.example.consultingbooking;
 
 import com.example.consultingbooking.controller.SlotController;
 import com.example.consultingbooking.entity.UserAccount;
+import com.example.consultingbooking.service.AccessAuditService;
 import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.SlotService;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,9 @@ class SlotControllerValidationTest {
 
     @MockBean
     private AuthService authService;
+
+    @MockBean
+    private AccessAuditService accessAuditService;
 
     @Test
     void slotListInvalidStatusReturnsTypedError() throws Exception {

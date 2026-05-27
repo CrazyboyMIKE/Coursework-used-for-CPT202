@@ -9,6 +9,8 @@ import com.example.consultingbooking.exception.BusinessException;
 import com.example.consultingbooking.repository.TimeSlotRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -46,6 +48,58 @@ public class SlotService {
         slot.setEndTime(request.endTime());
         slot.setStatus(SlotStatus.AVAILABLE);
         return mapSlot(timeSlotRepository.save(slot));
+    }
+
+    @Transactional
+    public SlotDtos.RecurringSlotResponse createRecurringSlots(
+            UserAccount actor,
+            Long specialistId,
+            SlotDtos.RecurringSlotRequest request
+    ) {
+        SpecialistProfile specialist = specialistService.getEntity(specialistId);
+        specialistService.ensureOwnerOrAdmin(actor, specialist);
+
+        LocalDate firstDate = LocalDate.now().with(TemporalAdjusters.nextOrSame(request.dayOfWeek()));
+        LocalDateTime firstStart = LocalDateTime.of(firstDate, request.startTime());
+        if (!firstStart.isAfter(LocalDateTime.now())) {
+            firstDate = firstDate.plusWeeks(1);
+        }
+
+        List<SlotDtos.SlotResponse> createdSlots = new ArrayList<>();
+        int skipped = 0;
+        int replaced = 0;
+        for (int occurrence = 0; occurrence < 4; occurrence++) {
+            LocalDate date = firstDate.plusWeeks(occurrence);
+            LocalDateTime start = LocalDateTime.of(date, request.startTime());
+            LocalDateTime end = LocalDateTime.of(date, request.endTime());
+            validateSlotTime(start, end);
+
+            List<TimeSlot> conflicts = timeSlotRepository
+                    .findBySpecialistIdAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTimeAsc(
+                            specialistId,
+                            end,
+                            start
+                    );
+            if (!conflicts.isEmpty()) {
+                boolean canReplace = request.conflictPolicy() == SlotDtos.ConflictPolicy.OVERWRITE_AVAILABLE
+                        && conflicts.stream().allMatch(slot -> slot.getStatus() == SlotStatus.AVAILABLE);
+                if (!canReplace) {
+                    skipped++;
+                    continue;
+                }
+                timeSlotRepository.deleteAll(conflicts);
+                replaced += conflicts.size();
+            }
+
+            TimeSlot slot = new TimeSlot();
+            slot.setSpecialist(specialist);
+            slot.setStartTime(start);
+            slot.setEndTime(end);
+            slot.setStatus(SlotStatus.AVAILABLE);
+            createdSlots.add(mapSlot(timeSlotRepository.save(slot)));
+        }
+
+        return new SlotDtos.RecurringSlotResponse(4, createdSlots.size(), skipped, replaced, createdSlots);
     }
 
     @Transactional(readOnly = true)

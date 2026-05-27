@@ -23,6 +23,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         customerStatusFilter: "ALL",
         specialistStatusFilter: "PENDING",
         specialistProfile: null,
+        specialistSelectedConsultationId: null,
+        specialistCalendarMode: "WEEK",
+        specialistCalendarStart: todayDateValue(),
+        notifications: [],
+        openNotificationIds: new Set(),
+        earningsEntries: [],
         bookingSearchRequestId: 0,
         bookingSearchTimer: null
     };
@@ -54,6 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         profileFormEmail: document.getElementById("profile-form-email"),
         profileFormPhone: document.getElementById("profile-form-phone"),
         slotForm: document.getElementById("slot-form"),
+        recurringSlotForm: document.getElementById("recurring-slot-form"),
         categoryCount: document.getElementById("category-count"),
         dashboardSubtitle: document.getElementById("dashboard-subtitle"),
         specialistResults: document.getElementById("specialist-results"),
@@ -72,8 +79,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         customerBookings: document.getElementById("customer-bookings"),
         specialistFilterBar: document.getElementById("specialist-filter-bar"),
         specialistProfile: document.getElementById("specialist-profile"),
+        specialistProfileForm: document.getElementById("specialist-profile-form"),
+        specialistProfileCategory: document.getElementById("specialist-profile-category"),
+        specialistProfileLevel: document.getElementById("specialist-profile-level"),
+        specialistProfileBaseFee: document.getElementById("specialist-profile-base-fee"),
+        specialistProfileBio: document.getElementById("specialist-profile-bio"),
         specialistSlots: document.getElementById("specialist-slots"),
+        specialistCalendarCaption: document.getElementById("specialist-calendar-caption"),
+        specialistCalendarMode: document.getElementById("specialist-calendar-mode"),
+        specialistCalendarDate: document.getElementById("specialist-calendar-date"),
+        specialistCalendarPrevious: document.getElementById("specialist-calendar-previous"),
+        specialistCalendarToday: document.getElementById("specialist-calendar-today"),
+        specialistCalendarNext: document.getElementById("specialist-calendar-next"),
         specialistSchedule: document.getElementById("specialist-schedule"),
+        specialistConsultationDetail: document.getElementById("specialist-consultation-detail"),
+        specialistConsultationFilterForm: document.getElementById("specialist-consultation-filter-form"),
+        clearSpecialistConsultationDates: document.getElementById("clear-specialist-consultation-dates"),
+        specialistEarnings: document.getElementById("specialist-earnings"),
+        specialistEarningsDetail: document.getElementById("specialist-earnings-detail"),
+        earningsFilterForm: document.getElementById("earnings-filter-form"),
+        notificationList: document.getElementById("notification-list"),
         summaryGrid: document.getElementById("summary-grid"),
         categoryList: document.getElementById("category-list"),
         createdUserTip: document.getElementById("created-user-tip")
@@ -86,6 +111,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     await loadCategories();
     await refreshRoleWorkspace();
+    await refreshNotifications();
 
     function bindEvents() {
         document.getElementById("logout-button").addEventListener("click", onLogout);
@@ -96,20 +122,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.bookingSpecialistSuggestions.addEventListener("click", onBookingSuggestionAction);
         elements.bookingAvailableSlots.addEventListener("click", onBookingSlotSelectionAction);
         elements.slotForm.addEventListener("submit", onCreateSlot);
+        elements.recurringSlotForm.addEventListener("submit", onCreateRecurringSlots);
+        elements.specialistProfileForm.addEventListener("submit", onSaveSpecialistProfile);
         elements.slotForm.querySelectorAll("input").forEach((input) => {
             input.addEventListener("input", () => validateSlotForm(elements.slotForm, false));
         });
         elements.customerFilterBar.addEventListener("click", onCustomerFilterChange);
         elements.specialistFilterBar.addEventListener("click", onSpecialistFilterChange);
+        elements.specialistConsultationFilterForm.addEventListener("submit", onFilterSpecialistConsultations);
+        elements.clearSpecialistConsultationDates.addEventListener("click", clearSpecialistConsultationDates);
         document.getElementById("category-form").addEventListener("submit", onCreateCategory);
         document.getElementById("admin-user-form").addEventListener("submit", onCreateUser);
         document.getElementById("admin-specialist-form").addEventListener("submit", onCreateSpecialistProfile);
         document.getElementById("refresh-customer-bookings").addEventListener("click", refreshCustomerWorkspace);
         document.getElementById("refresh-specialist-schedule").addEventListener("click", refreshSpecialistWorkspace);
+        elements.specialistCalendarMode.addEventListener("click", onSpecialistCalendarModeChange);
+        elements.specialistCalendarDate.addEventListener("change", onSpecialistCalendarDateChange);
+        elements.specialistCalendarPrevious.addEventListener("click", () => shiftSpecialistCalendar(-1));
+        elements.specialistCalendarToday.addEventListener("click", () => setSpecialistCalendarStart(todayDateValue()));
+        elements.specialistCalendarNext.addEventListener("click", () => shiftSpecialistCalendar(1));
+        document.getElementById("refresh-notifications").addEventListener("click", refreshNotifications);
+        elements.earningsFilterForm.addEventListener("submit", onFilterEarnings);
+        elements.specialistEarnings.addEventListener("click", onEarningsEntryClick);
         document.getElementById("refresh-admin-summary").addEventListener("click", refreshAdminWorkspace);
         elements.specialistResults.addEventListener("click", onSpecialistAction);
         elements.customerBookings.addEventListener("click", onCustomerBookingAction);
         elements.specialistSchedule.addEventListener("click", onSpecialistBookingAction);
+        elements.specialistConsultationDetail.addEventListener("click", onSpecialistDetailAction);
     }
 
     function renderSession() {
@@ -127,6 +166,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         resetBookingComposer();
         renderCustomerFilterButtons();
         renderSpecialistFilterButtons();
+        renderSpecialistCalendarControls();
 
         const isCustomer = state.user.role === "CUSTOMER";
         const isSpecialist = state.user.role === "SPECIALIST";
@@ -231,6 +271,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         elements.searchCategory.innerHTML = searchOptions;
         elements.adminCategorySelect.innerHTML = adminOptions || '<option value="">Create a category first</option>';
+        elements.specialistProfileCategory.innerHTML = adminOptions || '<option value="">No categories available</option>';
+        if (state.specialistProfile) {
+            elements.specialistProfileCategory.value = String(state.specialistProfile.categoryId);
+        }
     }
 
     function renderCategories() {
@@ -881,18 +925,62 @@ document.addEventListener("DOMContentLoaded", async () => {
         try {
             state.specialistProfile = await app.api("/api/specialists/me");
             renderSpecialistProfile();
-            const slots = await app.api(`/api/slots/specialists/${state.specialistProfile.id}?fromDate=${todayDateValue()}&days=14`);
+            const slots = await app.api(
+                    `/api/slots/specialists/${state.specialistProfile.id}?fromDate=${state.specialistCalendarStart}&days=${specialistCalendarDays()}`
+            );
             renderSpecialistSlots(slots);
             const bookings = await app.api(buildSpecialistScheduleUrl());
             renderSpecialistSchedule(bookings);
+            await refreshEarnings();
         } catch (error) {
             app.showToast(error.message, "error", "toast");
         }
     }
 
+    function onSpecialistCalendarModeChange(event) {
+        const button = event.target.closest("[data-specialist-calendar-mode]");
+        if (!button || button.dataset.specialistCalendarMode === state.specialistCalendarMode) {
+            return;
+        }
+
+        state.specialistCalendarMode = button.dataset.specialistCalendarMode;
+        renderSpecialistCalendarControls();
+        refreshSpecialistWorkspace();
+    }
+
+    function onSpecialistCalendarDateChange(event) {
+        setSpecialistCalendarStart(event.currentTarget.value || todayDateValue());
+    }
+
+    function shiftSpecialistCalendar(direction) {
+        const days = state.specialistCalendarMode === "DAY" ? direction : direction * 7;
+        setSpecialistCalendarStart(addDays(state.specialistCalendarStart, days));
+    }
+
+    function setSpecialistCalendarStart(dateValue) {
+        state.specialistCalendarStart = dateValue;
+        renderSpecialistCalendarControls();
+        refreshSpecialistWorkspace();
+    }
+
+    function specialistCalendarDays() {
+        return state.specialistCalendarMode === "DAY" ? 1 : 7;
+    }
+
+    function renderSpecialistCalendarControls() {
+        elements.specialistCalendarDate.value = state.specialistCalendarStart;
+        elements.specialistCalendarMode.querySelectorAll("[data-specialist-calendar-mode]").forEach((button) => {
+            button.classList.toggle("active", button.dataset.specialistCalendarMode === state.specialistCalendarMode);
+        });
+        elements.specialistCalendarCaption.textContent = state.specialistCalendarMode === "DAY"
+                ? "Published time slots for the selected day, including reserved appointments."
+                : "Published time slots for the selected week, including reserved appointments.";
+    }
+
     function renderSpecialistProfile() {
         if (!state.specialistProfile) {
             elements.specialistProfile.innerHTML = '<div class="empty-state">No specialist profile is linked to the current account</div>';
+            elements.specialistProfileForm.reset();
             return;
         }
 
@@ -906,6 +994,48 @@ document.addEventListener("DOMContentLoaded", async () => {
             <div><span class="muted-label">Status</span><strong>${profile.status}</strong></div>
             <div><span class="muted-label">Notes</span><strong>${app.escapeHtml(profile.bio || "No notes available")}</strong></div>
         `;
+        elements.specialistProfileCategory.value = String(profile.categoryId);
+        elements.specialistProfileLevel.value = profile.level || "";
+        elements.specialistProfileBaseFee.value = String(profile.baseFee);
+        elements.specialistProfileBio.value = profile.bio || "";
+    }
+
+    async function onSaveSpecialistProfile(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const payload = app.formToObject(form);
+        payload.categoryId = Number(payload.categoryId);
+        payload.baseFee = Number(payload.baseFee);
+        const feeChanged = state.specialistProfile
+                && Number(state.specialistProfile.baseFee) !== payload.baseFee;
+
+        if (feeChanged) {
+            const confirmation = await app.confirmAction({
+                title: "Update future booking rate",
+                message: "Save the new base fee? It will apply to new or rescheduled bookings only. Existing booking prices will remain unchanged.",
+                confirmLabel: "Update Rate"
+            });
+            if (!confirmation.confirmed) {
+                return;
+            }
+        }
+
+        app.clearFormErrors(form);
+        await app.withFormLoading(form, "Saving...", async () => {
+            state.specialistProfile = await app.api("/api/specialists/me", {
+                method: "PUT",
+                body: JSON.stringify(payload)
+            });
+            renderSpecialistProfile();
+            app.showFormSuccess(
+                    form,
+                    feeChanged
+                            ? "Professional profile updated. Existing booking prices remain unchanged; the new rate applies to new or rescheduled bookings."
+                            : "Professional profile updated successfully."
+            );
+        }).catch((error) => {
+            app.renderFormErrors(form, error, "Unable to save the professional profile. Please review the form.");
+        });
     }
 
     function renderSpecialistSlots(slots) {
@@ -919,9 +1049,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             groups.set(key, (groups.get(key) || []).concat(slot));
             return groups;
         }, new Map());
-        const days = Array.from({ length: 14 }, (_, offset) => {
-            const date = new Date();
-            date.setHours(0, 0, 0, 0);
+        const days = Array.from({ length: specialistCalendarDays() }, (_, offset) => {
+            const date = new Date(`${state.specialistCalendarStart}T00:00:00`);
             date.setDate(date.getDate() + offset);
             return date;
         });
@@ -977,6 +1106,37 @@ document.addEventListener("DOMContentLoaded", async () => {
             app.showFormSuccess(form, "Time slot created successfully.");
         }).catch((error) => {
             app.renderFormErrors(form, error);
+        });
+    }
+
+    async function onCreateRecurringSlots(event) {
+        event.preventDefault();
+        if (!state.specialistProfile) {
+            app.showToast("The current account is not linked to a specialist profile.", "error", "toast");
+            return;
+        }
+
+        const form = event.currentTarget;
+        const payload = app.formToObject(form);
+        if (payload.endTime <= payload.startTime) {
+            app.setFieldError(form, "endTime", "End time must be later than the start time.");
+            app.setFormError(form, "Please correct the highlighted fields and try again.");
+            return;
+        }
+
+        app.clearFormErrors(form);
+        await app.withFormLoading(form, "Creating...", async () => {
+            const result = await app.api(`/api/slots/specialists/${state.specialistProfile.id}/recurring`, {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            await refreshSpecialistWorkspace();
+            app.showFormSuccess(
+                    form,
+                    `${result.createdCount} weekly slots created; ${result.skippedCount} conflicts skipped; ${result.replacedCount} available slots replaced.`
+            );
+        }).catch((error) => {
+            app.renderFormErrors(form, error, "Unable to create recurring availability.");
         });
     }
 
@@ -1045,7 +1205,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     <span>Notes: ${app.escapeHtml(booking.notes || "None")}</span>
                 </div>
                 <div class="action-grid">
-                    ${booking.status === "PENDING" ? `<input id="specialist-reason-${booking.id}" type="text" placeholder="Optional rejection reason">` : ""}
+                    <button class="ghost-button" type="button" data-action="view-consultation-details" data-booking-id="${booking.id}">View Details</button>
+                    ${booking.status === "PENDING" ? `<input id="specialist-reason-${booking.id}" type="text" minlength="5" maxlength="255" placeholder="Rejection reason (at least 5 characters)">` : ""}
                     ${renderSpecialistActions(booking)}
                 </div>
             </article>
@@ -1059,6 +1220,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         const bookingId = Number(button.dataset.bookingId);
+
+        if (button.dataset.action === "view-consultation-details") {
+            await app.withButtonLoading(button, "Loading...", async () => {
+                const booking = await app.api(`/api/bookings/details/${bookingId}`);
+                state.specialistSelectedConsultationId = bookingId;
+                renderSpecialistConsultationDetail(booking);
+            }).catch((error) => {
+                app.showToast(error.message, "error", "toast");
+            });
+            return;
+        }
 
         if (button.dataset.action === "confirm-booking") {
             await app.withButtonLoading(button, "Confirming...", async () => {
@@ -1088,16 +1260,21 @@ document.addEventListener("DOMContentLoaded", async () => {
                     message: `Reject booking #${bookingId} and release the time slot?`,
                     confirmLabel: "Reject Booking",
                     reasonLabel: "Rejection Reason",
-                    reasonPlaceholder: reason || "Optional note for this rejection",
+                    reasonPlaceholder: reason || "Reason required (at least 5 characters)",
                     danger: true
                 });
                 if (!confirmation.confirmed) {
                     return;
                 }
 
+                const rejectionReason = confirmation.reason || reason;
+                if (rejectionReason.trim().length < 5) {
+                    app.showToast("Please provide a rejection reason of at least 5 characters.", "error", "toast");
+                    return;
+                }
                 await app.api(`/api/bookings/${bookingId}/reject`, {
                     method: "POST",
-                    body: JSON.stringify({ reason: confirmation.reason || reason })
+                    body: JSON.stringify({ reason: rejectionReason })
                 });
                 await refreshSpecialistWorkspace();
                 app.showToast("Booking rejected successfully.", "success", "toast");
@@ -1127,6 +1304,148 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
+    function renderSpecialistConsultationDetail(booking) {
+        elements.specialistConsultationDetail.classList.remove("hidden");
+        elements.specialistConsultationDetail.innerHTML = `
+            <div class="card-head">
+                <div>
+                    <p class="eyebrow">Consultation Detail</p>
+                    <h3>${app.escapeHtml(booking.topic)}</h3>
+                </div>
+                <span class="status-pill ${booking.status}">${booking.status}</span>
+            </div>
+            <div class="booking-detail-grid">
+                <span>Booking ID <strong>${booking.id}</strong></span>
+                <span>Customer <strong>${app.escapeHtml(booking.customerName)}</strong></span>
+                <span>Start Time <strong>${app.formatDateTime(booking.startTime)}</strong></span>
+                <span>End Time <strong>${app.formatDateTime(booking.endTime)}</strong></span>
+                <span>Consultation Fee <strong>${app.formatCurrency(booking.price, booking.feeCurrency)}</strong></span>
+                <span>Status <strong>${booking.status}</strong></span>
+            </div>
+            <p class="detail-note"><strong>Notes:</strong> ${app.escapeHtml(booking.notes || "None")}</p>
+            <div class="card-actions">
+                <button class="ghost-button" type="button" data-close-specialist-detail>Back to Consultation List</button>
+            </div>
+        `;
+    }
+
+    function onSpecialistDetailAction(event) {
+        if (event.target.closest("[data-close-specialist-detail]")) {
+            closeSpecialistConsultationDetail();
+        }
+    }
+
+    function closeSpecialistConsultationDetail() {
+        state.specialistSelectedConsultationId = null;
+        elements.specialistConsultationDetail.classList.add("hidden");
+        elements.specialistConsultationDetail.innerHTML = "";
+    }
+
+    async function refreshNotifications() {
+        try {
+            state.notifications = await app.api("/api/notifications/me");
+            renderNotifications();
+        } catch (error) {
+            elements.notificationList.innerHTML = '<div class="empty-state">Unable to load notifications.</div>';
+        }
+    }
+
+    function renderNotifications() {
+        if (!state.notifications.length) {
+            elements.notificationList.innerHTML = '<div class="empty-state">No notifications have been received.</div>';
+            return;
+        }
+        elements.notificationList.innerHTML = state.notifications.map((notification) => {
+            const isOpen = state.openNotificationIds.has(notification.id);
+            return `
+            <article class="notification-item ${notification.read ? "" : "unread"}">
+                <div class="card-head">
+                    <strong>${app.escapeHtml(notification.title)}</strong>
+                    <span class="status-pill ${notification.read ? "CLOSED" : "ACTIVE"}">${notification.read ? "READ" : "NEW"}</span>
+                </div>
+                ${isOpen ? `<p>${app.escapeHtml(notification.message)}</p>` : ""}
+                <div class="card-actions">
+                    <span class="muted-label">${app.formatDateTime(notification.createdAt)}</span>
+                    <button class="ghost-button" type="button" data-notification-open="${notification.id}">${isOpen ? "Close Message" : "Open Message"}</button>
+                </div>
+            </article>
+        `;
+        }).join("");
+    }
+
+    elements.notificationList.addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-notification-open]");
+        if (!button) {
+            return;
+        }
+        const notificationId = Number(button.dataset.notificationOpen);
+        if (state.openNotificationIds.has(notificationId)) {
+            state.openNotificationIds.delete(notificationId);
+            renderNotifications();
+            return;
+        }
+        state.openNotificationIds.add(notificationId);
+        const notification = state.notifications.find((item) => item.id === notificationId);
+        if (!notification || notification.read) {
+            renderNotifications();
+            return;
+        }
+        await app.withButtonLoading(button, "Opening...", async () => {
+            const updated = await app.api(`/api/notifications/${notificationId}/read`, { method: "POST" });
+            state.notifications = state.notifications.map((item) => item.id === notificationId ? updated : item);
+            renderNotifications();
+        }).catch((error) => app.showToast(error.message, "error", "toast"));
+    });
+
+    async function onFilterEarnings(event) {
+        event.preventDefault();
+        await refreshEarnings();
+    }
+
+    async function refreshEarnings() {
+        const values = app.formToObject(elements.earningsFilterForm);
+        const url = app.buildQueryUrl("/api/reports/my-earnings", values);
+        const earnings = await app.api(url);
+        state.earningsEntries = earnings.entries;
+        elements.specialistEarningsDetail.classList.add("hidden");
+        elements.specialistEarningsDetail.innerHTML = "";
+        elements.specialistEarnings.innerHTML = `
+            <div class="earnings-total">${app.formatCurrency(earnings.totalEarnings, earnings.currency)}</div>
+            ${earnings.entries.length ? earnings.entries.map((entry, index) => `
+                <button class="earnings-entry" type="button" data-earnings-index="${index}">
+                    <strong>${app.escapeHtml(entry.topic)}</strong>
+                    <span>${app.escapeHtml(entry.customerName)} / ${app.formatDateTime(entry.startTime)}</span>
+                    <span>${app.formatCurrency(entry.amount, entry.currency)}</span>
+                </button>
+            `).join("") : '<div class="empty-state">No completed consultation income in this date range.</div>'}
+        `;
+    }
+
+    function onEarningsEntryClick(event) {
+        const button = event.target.closest("[data-earnings-index]");
+        if (!button) {
+            return;
+        }
+        const entry = state.earningsEntries[Number(button.dataset.earningsIndex)];
+        if (!entry) {
+            return;
+        }
+        elements.specialistEarningsDetail.classList.remove("hidden");
+        elements.specialistEarningsDetail.innerHTML = `
+            <p class="eyebrow">Revenue Detail</p>
+            <h4>${app.escapeHtml(entry.topic)}</h4>
+            <div class="booking-detail-grid">
+                <span>Customer <strong>${app.escapeHtml(entry.customerName)}</strong></span>
+                <span>Start Time <strong>${app.formatDateTime(entry.startTime)}</strong></span>
+                <span>End Time <strong>${app.formatDateTime(entry.endTime)}</strong></span>
+                <span>Duration <strong>${entry.durationMinutes} minutes</strong></span>
+                <span>Unit Price <strong>${app.formatCurrency(entry.unitPrice, entry.currency)} / hour</strong></span>
+                <span>Total Revenue <strong>${app.formatCurrency(entry.amount, entry.currency)}</strong></span>
+            </div>
+            <p class="detail-note">Pricing multiplier: ${entry.pricingMultiplier}. Revenue includes completed consultations only.</p>
+        `;
+    }
+
     function onCustomerFilterChange(event) {
         const button = event.target.closest("[data-customer-filter]");
         if (!button) {
@@ -1145,7 +1464,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         state.specialistStatusFilter = button.dataset.specialistFilter;
+        closeSpecialistConsultationDetail();
         renderSpecialistFilterButtons();
+        refreshSpecialistWorkspace();
+    }
+
+    function onFilterSpecialistConsultations(event) {
+        event.preventDefault();
+        closeSpecialistConsultationDetail();
+        refreshSpecialistWorkspace();
+    }
+
+    function clearSpecialistConsultationDates() {
+        elements.specialistConsultationFilterForm.reset();
+        closeSpecialistConsultationDetail();
         refreshSpecialistWorkspace();
     }
 
@@ -1168,8 +1500,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function buildSpecialistScheduleUrl() {
+        const dates = app.formToObject(elements.specialistConsultationFilterForm);
         return app.buildQueryUrl("/api/bookings/schedule", {
-            status: state.specialistStatusFilter !== "ALL" ? state.specialistStatusFilter : null
+            status: state.specialistStatusFilter !== "ALL" ? state.specialistStatusFilter : null,
+            fromDate: dates.fromDate || null,
+            toDate: dates.toDate || null
         });
     }
 
@@ -1312,11 +1647,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     function todayDateValue() {
-        return new Date().toISOString().slice(0, 10);
+        return localDateKey(new Date());
+    }
+
+    function addDays(value, days) {
+        const date = new Date(`${value}T00:00:00`);
+        date.setDate(date.getDate() + days);
+        return localDateKey(date);
     }
 
     function dateValueFromIso(value) {
-        return value ? new Date(value).toISOString().slice(0, 10) : todayDateValue();
+        return value ? localDateKey(new Date(value)) : todayDateValue();
     }
 
     async function refreshAdminWorkspace() {

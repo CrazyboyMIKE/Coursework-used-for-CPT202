@@ -1,6 +1,7 @@
 package com.example.consultingbooking;
 
 import com.example.consultingbooking.controller.AuthController;
+import com.example.consultingbooking.service.AccessAuditService;
 import com.example.consultingbooking.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -21,6 +23,9 @@ class AuthControllerValidationTest {
 
     @MockBean
     private AuthService authService;
+
+    @MockBean
+    private AccessAuditService accessAuditService;
 
     @Test
     void loginIdentifierLongerThanLimitReturnsValidationError() throws Exception {
@@ -71,5 +76,12 @@ class AuthControllerValidationTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors.resetCode").exists());
+    }
+
+    @Test
+    void missingStaticResourceReturnsNotFoundRatherThanInternalError() throws Exception {
+        mockMvc.perform(get("/favicon.ico"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
     }
 }
