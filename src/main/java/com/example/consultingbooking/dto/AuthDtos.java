@@ -30,7 +30,7 @@ public final class AuthDtos {
             @Size(max = 30) String phone,
             @NotBlank @Size(max = 80) String categoryName,
             @NotBlank @Size(max = 120) String level,
-            @NotNull @DecimalMin("0.0") BigDecimal baseFee,
+            @NotNull @DecimalMin(value = "0.01", message = "Base fee must be greater than zero") BigDecimal baseFee,
             String feeCurrency,
             @NotBlank(message = "Notes are required") @Size(max = 500) String bio
     ) {

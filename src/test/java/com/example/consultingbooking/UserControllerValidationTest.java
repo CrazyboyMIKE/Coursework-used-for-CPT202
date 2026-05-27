@@ -2,6 +2,7 @@ package com.example.consultingbooking;
 
 import com.example.consultingbooking.controller.UserController;
 import com.example.consultingbooking.entity.UserAccount;
+import com.example.consultingbooking.service.AccessAuditService;
 import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,9 @@ class UserControllerValidationTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private AccessAuditService accessAuditService;
 
     @Test
     void userCreateInvalidEmailReturnsValidationError() throws Exception {

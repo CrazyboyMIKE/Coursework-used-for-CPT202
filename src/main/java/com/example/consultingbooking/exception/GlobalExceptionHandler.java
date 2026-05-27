@@ -1,6 +1,9 @@
 package com.example.consultingbooking.exception;
 
 import com.example.consultingbooking.dto.ApiErrorResponse;
+import com.example.consultingbooking.service.AccessAuditService;
+import com.example.consultingbooking.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,10 +28,29 @@ public class GlobalExceptionHandler {
     private static final String VALIDATION_FAILED = "VALIDATION_FAILED";
     private static final String INVALID_REQUEST_PARAMETER = "INVALID_REQUEST_PARAMETER";
     private static final String INVALID_REQUEST_BODY = "INVALID_REQUEST_BODY";
+    private static final String RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND";
     private static final String INTERNAL_ERROR = "INTERNAL_ERROR";
+    private final AccessAuditService accessAuditService;
+
+    public GlobalExceptionHandler(AccessAuditService accessAuditService) {
+        this.accessAuditService = accessAuditService;
+    }
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiErrorResponse> handleBusiness(BusinessException ex) {
+    public ResponseEntity<ApiErrorResponse> handleBusiness(BusinessException ex, HttpServletRequest request) {
+        if (ex.getStatus() == HttpStatus.UNAUTHORIZED || ex.getStatus() == HttpStatus.FORBIDDEN) {
+            try {
+                accessAuditService.recordDeniedAccess(
+                        request.getMethod(),
+                        request.getRequestURI(),
+                        ex.getStatus(),
+                        ex.getMessage(),
+                        request.getHeader(AuthService.AUTH_HEADER)
+                );
+            } catch (RuntimeException auditFailure) {
+                log.warn("Unable to write denied-access audit record", auditFailure);
+            }
+        }
         return buildResponse(ex.getStatus(), ex.getCode(), ex.getMessage(), Collections.emptyMap());
     }
 
@@ -66,6 +89,16 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 INVALID_REQUEST_BODY,
                 "Request body is invalid or malformed",
+                Collections.emptyMap()
+        );
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingResource(NoResourceFoundException ex) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                RESOURCE_NOT_FOUND,
+                "Resource not found",
                 Collections.emptyMap()
         );
     }

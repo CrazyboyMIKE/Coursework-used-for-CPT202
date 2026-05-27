@@ -10,13 +10,18 @@ import com.example.consultingbooking.entity.TimeSlot;
 import com.example.consultingbooking.entity.UserAccount;
 import com.example.consultingbooking.entity.UserRole;
 import com.example.consultingbooking.repository.BookingRepository;
+import com.example.consultingbooking.repository.AccessAuditLogRepository;
 import com.example.consultingbooking.repository.ExpertiseCategoryRepository;
+import com.example.consultingbooking.repository.EvaluationRepository;
+import com.example.consultingbooking.repository.NotificationRepository;
 import com.example.consultingbooking.repository.PasswordResetTokenRepository;
+import com.example.consultingbooking.repository.RefundRecordRepository;
 import com.example.consultingbooking.repository.SessionTokenRepository;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.TimeSlotRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
 import com.example.consultingbooking.security.PasswordHasher;
+import com.example.consultingbooking.service.RefundService;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
@@ -74,10 +79,15 @@ public class DataInitializer {
             UserAccountRepository userAccountRepository,
             ExpertiseCategoryRepository expertiseCategoryRepository,
             BookingRepository bookingRepository,
+            AccessAuditLogRepository accessAuditLogRepository,
+            NotificationRepository notificationRepository,
+            EvaluationRepository evaluationRepository,
+            RefundRecordRepository refundRecordRepository,
             SessionTokenRepository sessionTokenRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             SpecialistProfileRepository specialistProfileRepository,
             TimeSlotRepository timeSlotRepository,
+            RefundService refundService,
             PlatformTransactionManager transactionManager
     ) {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
@@ -93,13 +103,17 @@ public class DataInitializer {
                 purgeLegacySpecialistFixtures(
                         userAccountRepository,
                         bookingRepository,
+                        accessAuditLogRepository,
+                        notificationRepository,
+                        evaluationRepository,
+                        refundRecordRepository,
                         sessionTokenRepository,
                         passwordResetTokenRepository,
                         specialistProfileRepository,
                         timeSlotRepository
                 );
                 ensureSpecialistFixtures(userAccountRepository, specialistProfileRepository, timeSlotRepository, categoryMap);
-                ensureBookingFixtures(userAccountRepository, specialistProfileRepository, timeSlotRepository, bookingRepository);
+                ensureBookingFixtures(userAccountRepository, specialistProfileRepository, timeSlotRepository, bookingRepository, refundService);
             });
         };
     }
@@ -163,6 +177,10 @@ public class DataInitializer {
     private void purgeLegacySpecialistFixtures(
             UserAccountRepository userAccountRepository,
             BookingRepository bookingRepository,
+            AccessAuditLogRepository accessAuditLogRepository,
+            NotificationRepository notificationRepository,
+            EvaluationRepository evaluationRepository,
+            RefundRecordRepository refundRecordRepository,
             SessionTokenRepository sessionTokenRepository,
             PasswordResetTokenRepository passwordResetTokenRepository,
             SpecialistProfileRepository specialistProfileRepository,
@@ -170,7 +188,14 @@ public class DataInitializer {
     ) {
         for (String username : specialistFixtureUsernamesToPurge()) {
             userAccountRepository.findByUsernameIgnoreCase(username).ifPresent(user -> {
-                bookingRepository.deleteAll(bookingRepository.findBySpecialistUserIdOrderBySlotStartTimeAsc(user.getId()));
+                List<Booking> bookings = bookingRepository.findBySpecialistUserIdOrderBySlotStartTimeAsc(user.getId());
+                bookings.forEach(booking -> {
+                    evaluationRepository.deleteByBookingId(booking.getId());
+                    notificationRepository.deleteByBookingId(booking.getId());
+                    refundRecordRepository.deleteByBookingId(booking.getId());
+                });
+                bookingRepository.deleteAll(bookings);
+                accessAuditLogRepository.deleteByUserId(user.getId());
                 sessionTokenRepository.deleteByUserId(user.getId());
                 passwordResetTokenRepository.deleteByUserId(user.getId());
 
@@ -249,10 +274,18 @@ public class DataInitializer {
             UserAccountRepository userAccountRepository,
             SpecialistProfileRepository specialistProfileRepository,
             TimeSlotRepository timeSlotRepository,
-            BookingRepository bookingRepository
+            BookingRepository bookingRepository,
+            RefundService refundService
     ) {
         for (int index = 0; index < BOOKING_SEEDS.size(); index++) {
             BookingSeed seed = BOOKING_SEEDS.get(index);
+            java.util.Optional<Booking> existingBooking = bookingRepository.findByTopic(seed.topic());
+            if (existingBooking.isPresent()) {
+                if (existingBooking.get().getStatus() == BookingStatus.CANCELLED) {
+                    refundService.synchroniseCancellation(existingBooking.get());
+                }
+                continue;
+            }
             UserAccount customer = userAccountRepository.findByUsernameIgnoreCase(seed.customerUsername())
                     .orElseThrow(() -> new IllegalStateException("Missing seeded customer " + seed.customerUsername()));
             UserAccount specialistUser = userAccountRepository.findByUsernameIgnoreCase(seed.specialistUsername())
@@ -275,8 +308,16 @@ public class DataInitializer {
             booking.setTopic(seed.topic());
             booking.setNotes(seed.notes());
             booking.setPrice(specialist.getBaseFee());
+            booking.setUnitPrice(specialist.getBaseFee());
+            booking.setPricingMultiplier(BigDecimal.ONE.setScale(2));
             booking.setLastActionReason(seed.lastActionReason());
-            bookingRepository.save(booking);
+            if (seed.status() == BookingStatus.CANCELLED) {
+                booking.setCancelledAt(LocalDateTime.now());
+            }
+            Booking saved = bookingRepository.save(booking);
+            if (seed.status() == BookingStatus.CANCELLED) {
+                refundService.synchroniseCancellation(saved);
+            }
         }
     }
 
@@ -417,8 +458,10 @@ public class DataInitializer {
 
         for (int number = 1; number <= 30; number++) {
             usernames.add(String.format("specialist%02d", number));
-            usernames.add(String.format("specialist%03d", number));
             usernames.add("specialist" + number);
+            if (number > SPECIALIST_SEEDS.size()) {
+                usernames.add(String.format("specialist%03d", number));
+            }
         }
 
         return usernames;

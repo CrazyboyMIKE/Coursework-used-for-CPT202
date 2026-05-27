@@ -11,6 +11,10 @@ import com.example.consultingbooking.repository.TimeSlotRepository;
 import com.example.consultingbooking.service.SlotService;
 import com.example.consultingbooking.service.SpecialistService;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.DayOfWeek;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -103,5 +107,38 @@ class SlotServiceTest {
         Assertions.assertEquals(4L, response.specialistId());
         Assertions.assertEquals(start, captor.getValue().getStartTime());
         Assertions.assertEquals(end, captor.getValue().getEndTime());
+    }
+
+    @Test
+    void recurringAvailabilityCreatesFourWeeklySlots() {
+        Mockito.when(specialistService.getEntity(4L)).thenReturn(specialist);
+        Mockito.when(timeSlotRepository
+                .findBySpecialistIdAndStartTimeLessThanAndEndTimeGreaterThanOrderByStartTimeAsc(
+                        Mockito.eq(4L),
+                        Mockito.any(LocalDateTime.class),
+                        Mockito.any(LocalDateTime.class)
+                ))
+                .thenReturn(List.of());
+        AtomicLong ids = new AtomicLong(100);
+        Mockito.when(timeSlotRepository.save(Mockito.any(TimeSlot.class))).thenAnswer(invocation -> {
+            TimeSlot slot = invocation.getArgument(0);
+            slot.setId(ids.getAndIncrement());
+            return slot;
+        });
+
+        SlotDtos.RecurringSlotResponse response = slotService.createRecurringSlots(
+                specialistUser,
+                4L,
+                new SlotDtos.RecurringSlotRequest(
+                        DayOfWeek.FRIDAY,
+                        LocalTime.of(9, 0),
+                        LocalTime.of(10, 0),
+                        SlotDtos.ConflictPolicy.SKIP
+                )
+        );
+
+        Assertions.assertEquals(4, response.createdCount());
+        Assertions.assertEquals(0, response.skippedCount());
+        Mockito.verify(timeSlotRepository, Mockito.times(4)).save(Mockito.any(TimeSlot.class));
     }
 }

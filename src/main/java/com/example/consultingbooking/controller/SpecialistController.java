@@ -73,6 +73,15 @@ public class SpecialistController {
         return specialistService.currentSpecialist(actor);
     }
 
+    @PutMapping("/me")
+    public SpecialistDtos.SpecialistResponse updateMe(
+            @RequestHeader(AuthService.AUTH_HEADER) String token,
+            @Valid @RequestBody SpecialistDtos.SpecialistSelfUpdateRequest request
+    ) {
+        UserAccount actor = authService.requireUser(token);
+        return specialistService.updateCurrentSpecialist(actor, request);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public SpecialistDtos.SpecialistResponse create(

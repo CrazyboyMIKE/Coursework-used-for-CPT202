@@ -42,6 +42,22 @@ class PricingServiceTest {
         Assertions.assertEquals(new BigDecimal("50.00"), price);
     }
 
+    @Test
+    void appliesSegmentedPricingWhenSlotCrossesIntoWeekend() {
+        SpecialistProfile specialist = specialistWithBaseFee("300.00");
+        TimeSlot slot = slotAt(LocalDateTime.of(2026, 5, 8, 23, 30), 60);
+
+        PricingService.PriceCalculation calculation = pricingService.calculateBreakdown(specialist.getBaseFee(), slot);
+
+        Assertions.assertEquals(new BigDecimal("322.50"), calculation.totalPrice());
+        Assertions.assertEquals(new BigDecimal("1.08"), calculation.effectiveMultiplier());
+        Assertions.assertEquals(2, calculation.segments().size());
+        Assertions.assertEquals("Standard rate", calculation.segments().get(0).label());
+        Assertions.assertEquals(new BigDecimal("150.00"), calculation.segments().get(0).amount());
+        Assertions.assertEquals("Weekend rate", calculation.segments().get(1).label());
+        Assertions.assertEquals(new BigDecimal("172.50"), calculation.segments().get(1).amount());
+    }
+
     private SpecialistProfile specialistWithBaseFee(String baseFee) {
         SpecialistProfile specialist = new SpecialistProfile();
         specialist.setBaseFee(new BigDecimal(baseFee));

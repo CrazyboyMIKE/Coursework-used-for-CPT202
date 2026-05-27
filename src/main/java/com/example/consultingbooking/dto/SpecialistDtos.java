@@ -17,7 +17,7 @@ public final class SpecialistDtos {
             @NotNull(message = "User ID is required") @Positive Long userId,
             @NotNull(message = "Category is required") @Positive Long categoryId,
             @NotBlank(message = "Professional title or certification is required") @Size(max = 120) String level,
-            @NotNull(message = "Base fee is required") @DecimalMin(value = "0.0", message = "Base fee must be zero or greater") BigDecimal baseFee,
+            @NotNull(message = "Base fee is required") @DecimalMin(value = "0.01", message = "Base fee must be greater than zero") BigDecimal baseFee,
             String feeCurrency,
             @NotNull(message = "Status is required") SpecialistStatus status,
             @Size(max = 500) String bio
@@ -27,9 +27,18 @@ public final class SpecialistDtos {
     public record SpecialistUpdateRequest(
             @NotNull(message = "Category is required") @Positive Long categoryId,
             @NotBlank(message = "Professional title or certification is required") @Size(max = 120) String level,
-            @NotNull(message = "Base fee is required") @DecimalMin(value = "0.0", message = "Base fee must be zero or greater") BigDecimal baseFee,
+            @NotNull(message = "Base fee is required") @DecimalMin(value = "0.01", message = "Base fee must be greater than zero") BigDecimal baseFee,
             String feeCurrency,
             @NotNull(message = "Status is required") SpecialistStatus status,
+            @Size(max = 500) String bio
+    ) {
+    }
+
+    public record SpecialistSelfUpdateRequest(
+            @NotNull(message = "Category is required") @Positive Long categoryId,
+            @NotBlank(message = "Professional title or certification is required") @Size(max = 120) String level,
+            @NotNull(message = "Base fee is required") @DecimalMin(value = "0.01", message = "Base fee must be greater than zero") BigDecimal baseFee,
+            String feeCurrency,
             @Size(max = 500) String bio
     ) {
     }

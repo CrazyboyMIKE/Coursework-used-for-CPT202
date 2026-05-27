@@ -164,6 +164,7 @@
                         <ul class="story-list compact-list">
                             <li>Your username stays fixed after account creation.</li>
                             <li>Email addresses must remain unique across all accounts.</li>
+                            <li>Phone numbers must remain unique when supplied.</li>
                             <li>Updated names are reflected in role-specific views after refresh.</li>
                         </ul>
                         <div class="card-actions">
@@ -171,6 +172,17 @@
                         </div>
                     </div>
                 </div>
+            </section>
+
+            <section class="panel" id="notifications-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="eyebrow">Messages</p>
+                        <h2>Notifications</h2>
+                    </div>
+                    <button class="ghost-button" id="refresh-notifications" type="button">Refresh Messages</button>
+                </div>
+                <div class="notification-list" id="notification-list"></div>
             </section>
 
             <section class="panel hidden" id="customer-panel">
@@ -232,6 +244,7 @@
                     <button class="status-filter" type="button" data-customer-filter="CONFIRMED">Confirmed</button>
                     <button class="status-filter" type="button" data-customer-filter="CANCELLED">Cancelled</button>
                     <button class="status-filter" type="button" data-customer-filter="COMPLETED">Completed</button>
+                    <button class="status-filter" type="button" data-customer-filter="REJECTED">Declined</button>
                 </div>
 
                 <div class="booking-stack" id="customer-bookings"></div>
@@ -272,14 +285,113 @@
                     </form>
                 </div>
 
+                <div class="two-column-panel specialist-edit-panel">
+                    <form class="content-card stack-form editor-card" id="specialist-profile-form">
+                        <h3>Edit Professional Profile</h3>
+                        <div class="form-error hidden" data-form-error></div>
+                        <label>
+                            <span>Category</span>
+                            <select id="specialist-profile-category" name="categoryId" required></select>
+                            <small class="field-error" data-error-for="categoryId"></small>
+                        </label>
+                        <label>
+                            <span>Professional Title or Certification</span>
+                            <input id="specialist-profile-level" name="level" type="text" maxlength="120" required>
+                            <small class="field-error" data-error-for="level"></small>
+                        </label>
+                        <label>
+                            <span>Base Fee</span>
+                            <input id="specialist-profile-base-fee" name="baseFee" type="number" min="0.01" step="0.01" required>
+                            <input name="feeCurrency" type="hidden" value="USD">
+                            <small class="field-error" data-error-for="baseFee"></small>
+                            <small class="helper-text">A new base fee applies to new or rescheduled bookings only. Existing booked prices remain unchanged.</small>
+                        </label>
+                        <label>
+                            <span>Notes</span>
+                            <textarea id="specialist-profile-bio" name="bio" rows="4" maxlength="500"></textarea>
+                            <small class="field-error" data-error-for="bio"></small>
+                        </label>
+                        <button type="submit">Save Professional Profile</button>
+                    </form>
+
+                    <form class="content-card stack-form editor-card" id="recurring-slot-form">
+                        <h3>Weekly Availability</h3>
+                        <div class="form-error hidden" data-form-error></div>
+                        <label>
+                            <span>Weekday</span>
+                            <select name="dayOfWeek" required>
+                                <option value="MONDAY">Monday</option>
+                                <option value="TUESDAY">Tuesday</option>
+                                <option value="WEDNESDAY">Wednesday</option>
+                                <option value="THURSDAY">Thursday</option>
+                                <option value="FRIDAY">Friday</option>
+                                <option value="SATURDAY">Saturday</option>
+                                <option value="SUNDAY">Sunday</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Start Time</span>
+                            <input name="startTime" type="time" required>
+                            <small class="field-error" data-error-for="startTime"></small>
+                        </label>
+                        <label>
+                            <span>End Time</span>
+                            <input name="endTime" type="time" required>
+                            <small class="field-error" data-error-for="endTime"></small>
+                        </label>
+                        <label>
+                            <span>When Slots Conflict</span>
+                            <select name="conflictPolicy" required>
+                                <option value="SKIP">Keep existing slots and skip conflicts</option>
+                                <option value="OVERWRITE_AVAILABLE">Replace conflicting available slots</option>
+                            </select>
+                        </label>
+                        <button type="submit">Create Next 4 Weeks</button>
+                    </form>
+                </div>
+
                 <div class="content-card">
                     <div class="card-head">
                         <div>
                             <h3>My Time Table</h3>
-                            <p class="panel-note">Published time slots for the next 14 days, including reserved appointments.</p>
+                            <p class="panel-note" id="specialist-calendar-caption">Published time slots for the selected week, including reserved appointments.</p>
+                        </div>
+                    </div>
+                    <div class="calendar-toolbar">
+                        <div class="segmented-control" id="specialist-calendar-mode" role="group" aria-label="Calendar view">
+                            <button class="ghost-button" type="button" data-specialist-calendar-mode="DAY">Day</button>
+                            <button class="ghost-button active" type="button" data-specialist-calendar-mode="WEEK">Week</button>
+                        </div>
+                        <div class="calendar-range-controls">
+                            <button class="ghost-button compact-control" id="specialist-calendar-previous" type="button" aria-label="Previous period">&lt;</button>
+                            <input id="specialist-calendar-date" type="date" aria-label="Calendar start date">
+                            <button class="ghost-button" id="specialist-calendar-today" type="button">Today</button>
+                            <button class="ghost-button compact-control" id="specialist-calendar-next" type="button" aria-label="Next period">&gt;</button>
                         </div>
                     </div>
                     <div class="slot-list" id="specialist-slots"></div>
+                </div>
+
+                <div class="content-card specialist-earnings-card">
+                    <div class="card-head">
+                        <div>
+                            <h3>Earnings Overview</h3>
+                            <p class="panel-note">Revenue includes completed consultations only.</p>
+                        </div>
+                    </div>
+                    <form class="earnings-filter-form" id="earnings-filter-form">
+                        <label>
+                            <span>From</span>
+                            <input name="fromDate" type="date">
+                        </label>
+                        <label>
+                            <span>To</span>
+                            <input name="toDate" type="date">
+                        </label>
+                        <button class="ghost-button" type="submit">Apply Dates</button>
+                    </form>
+                    <div id="specialist-earnings"></div>
+                    <div class="earnings-detail hidden" id="specialist-earnings-detail"></div>
                 </div>
 
                 <div class="status-filter-bar specialist-filter-bar" id="specialist-filter-bar">
@@ -289,6 +401,19 @@
                     <button class="status-filter" type="button" data-specialist-filter="REJECTED">Declined</button>
                 </div>
 
+                <form class="earnings-filter-form consultation-history-filter" id="specialist-consultation-filter-form">
+                    <label>
+                        <span>Consultations From</span>
+                        <input name="fromDate" type="date">
+                    </label>
+                    <label>
+                        <span>Consultations To</span>
+                        <input name="toDate" type="date">
+                    </label>
+                    <button class="ghost-button" type="submit">Apply Dates</button>
+                    <button class="ghost-button" id="clear-specialist-consultation-dates" type="button">Clear Dates</button>
+                </form>
+                <div class="booking-detail-panel hidden" id="specialist-consultation-detail"></div>
                 <div class="booking-stack" id="specialist-schedule"></div>
             </section>
 
@@ -368,7 +493,7 @@
                         </label>
                         <label>
                             <span>Base Fee</span>
-                            <input name="baseFee" type="number" min="0" step="0.01" required>
+                            <input name="baseFee" type="number" min="0.01" step="0.01" required>
                             <input name="feeCurrency" type="hidden" value="USD">
                         </label>
                         <label>

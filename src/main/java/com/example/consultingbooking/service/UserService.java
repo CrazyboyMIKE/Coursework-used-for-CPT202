@@ -9,6 +9,7 @@ import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
 import com.example.consultingbooking.security.PasswordHasher;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -47,6 +48,7 @@ public class UserService {
         if (userAccountRepository.existsByEmail(request.email().trim().toLowerCase())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Email already exists");
         }
+        validateAvailablePhone(request.phone(), null);
 
         UserAccount user = new UserAccount();
         user.setUsername(request.username().trim());
@@ -92,6 +94,7 @@ public class UserService {
         if (!user.getEmail().equalsIgnoreCase(email) && userAccountRepository.existsByEmail(email)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Email already exists");
         }
+        validateAvailablePhone(request.phone(), userId);
         if (specialistProfileRepository.findByUserId(userId).isPresent() && request.role() != UserRole.SPECIALIST) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Users with specialist profiles must keep the SPECIALIST role");
         }
@@ -111,6 +114,7 @@ public class UserService {
         if (!currentUser.getEmail().equalsIgnoreCase(email) && userAccountRepository.existsByEmail(email)) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Email already exists");
         }
+        validateAvailablePhone(request.phone(), currentUser.getId());
 
         currentUser.setFullName(request.fullName().trim());
         currentUser.setEmail(email);
@@ -121,6 +125,19 @@ public class UserService {
     public UserAccount getEntity(Long userId) {
         return userAccountRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "User not found"));
+    }
+
+    private void validateAvailablePhone(String phone, Long currentUserId) {
+        String normalizedPhone = TextNormalizer.cleanOptional(phone);
+        if (normalizedPhone == null) {
+            return;
+        }
+
+        userAccountRepository.findByPhone(normalizedPhone)
+                .filter(user -> !Objects.equals(user.getId(), currentUserId))
+                .ifPresent(user -> {
+                    throw new BusinessException(HttpStatus.BAD_REQUEST, "Phone number already exists");
+                });
     }
 
     private UserDtos.UserResponse mapUser(UserAccount user) {

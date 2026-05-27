@@ -16,11 +16,15 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
 
     Optional<UserAccount> findByEmailIgnoreCase(String email);
 
+    Optional<UserAccount> findByPhone(String phone);
+
     boolean existsByUsername(String username);
 
     boolean existsByUsernameIgnoreCase(String username);
 
     boolean existsByEmail(String email);
+
+    boolean existsByPhone(String phone);
 
     @Query("""
             select u from UserAccount u

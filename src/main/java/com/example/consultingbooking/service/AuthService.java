@@ -50,7 +50,7 @@ public class AuthService {
 
     @Transactional
     public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request) {
-        validateUniqueUser(request.username(), request.email());
+        validateUniqueUser(request.username(), request.email(), request.phone());
         UserAccount saved = userAccountRepository.save(buildUser(
                 request.username(),
                 request.password(),
@@ -64,7 +64,7 @@ public class AuthService {
 
     @Transactional
     public AuthDtos.AuthResponse registerSpecialist(AuthDtos.SpecialistRegisterRequest request) {
-        validateUniqueUser(request.username(), request.email());
+        validateUniqueUser(request.username(), request.email(), request.phone());
 
         ExpertiseCategory category = resolveOrCreateCategory(request.categoryName());
 
@@ -95,14 +95,15 @@ public class AuthService {
         String credential = request.username().trim();
         UserAccount user = userAccountRepository.findByUsernameIgnoreCase(credential)
                 .or(() -> userAccountRepository.findByEmailIgnoreCase(credential))
-                .orElseThrow(() -> new BusinessException(HttpStatus.UNAUTHORIZED, "Invalid username/email or password"));
+                .or(() -> userAccountRepository.findByPhone(credential))
+                .orElseThrow(() -> new BusinessException(HttpStatus.UNAUTHORIZED, "Invalid username, email, phone, or password"));
 
         if (!user.isActive()) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "User account is inactive");
         }
 
         if (!PasswordHasher.matches(request.password(), user.getPassword())) {
-            throw new BusinessException(HttpStatus.UNAUTHORIZED, "Invalid username/email or password");
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "Invalid username, email, phone, or password");
         }
         if (PasswordHasher.needsHash(user.getPassword())) {
             user.setPassword(PasswordHasher.hash(request.password()));
@@ -221,13 +222,18 @@ public class AuthService {
         }
     }
 
-    private void validateUniqueUser(String username, String email) {
+    private void validateUniqueUser(String username, String email, String phone) {
         if (userAccountRepository.existsByUsernameIgnoreCase(username.trim())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Username already exists");
         }
 
         if (userAccountRepository.existsByEmail(email.trim().toLowerCase())) {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "Email already exists");
+        }
+
+        String normalizedPhone = TextNormalizer.cleanOptional(phone);
+        if (normalizedPhone != null && userAccountRepository.existsByPhone(normalizedPhone)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "Phone number already exists");
         }
     }
 
@@ -264,7 +270,8 @@ public class AuthService {
 
     private java.util.Optional<UserAccount> findUserByIdentifier(String identifier) {
         return userAccountRepository.findByUsernameIgnoreCase(identifier)
-                .or(() -> userAccountRepository.findByEmailIgnoreCase(identifier));
+                .or(() -> userAccountRepository.findByEmailIgnoreCase(identifier))
+                .or(() -> userAccountRepository.findByPhone(identifier));
     }
 
     private void invalidateSessions(Long userId) {

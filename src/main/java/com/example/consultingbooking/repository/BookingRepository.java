@@ -3,8 +3,10 @@ package com.example.consultingbooking.repository;
 import com.example.consultingbooking.entity.Booking;
 import com.example.consultingbooking.entity.BookingStatus;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,13 +17,46 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsBySlotIdAndStatusIn(Long slotId, Collection<BookingStatus> statuses);
 
+    boolean existsByTopic(String topic);
+
+    Optional<Booking> findByTopic(String topic);
+
     List<Booking> findByCustomerIdOrderBySlotStartTimeDesc(Long customerId);
 
     List<Booking> findByCustomerIdAndStatusOrderBySlotStartTimeDesc(Long customerId, BookingStatus status);
 
+    List<Booking> findByStatusAndSlotStartTimeGreaterThanAndSlotStartTimeLessThanEqualOrderBySlotStartTimeAsc(
+            BookingStatus status,
+            LocalDateTime rangeStart,
+            LocalDateTime rangeEnd
+    );
+
     List<Booking> findBySpecialistUserIdOrderBySlotStartTimeAsc(Long userId);
 
     List<Booking> findBySpecialistUserIdAndStatusOrderBySlotStartTimeAsc(Long userId, BookingStatus status);
+
+    @Query("""
+            select b from Booking b
+            join b.slot slot
+            where b.specialist.user.id = :userId
+              and (:status is null or b.status = :status)
+              and (:rangeStart is null or slot.startTime >= :rangeStart)
+              and (:rangeEnd is null or slot.startTime < :rangeEnd)
+            order by slot.startTime asc
+            """)
+    List<Booking> findSpecialistSchedule(
+            @Param("userId") Long userId,
+            @Param("status") BookingStatus status,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd
+    );
+
+    List<Booking> findBySpecialistUserIdAndStatusAndSlotStartTimeGreaterThanEqualAndSlotStartTimeLessThanOrderBySlotStartTimeDesc(
+            Long userId,
+            BookingStatus status,
+            LocalDateTime rangeStart,
+            LocalDateTime rangeEnd
+    );
 
     List<Booking> findAllByOrderBySlotStartTimeDesc();
 
