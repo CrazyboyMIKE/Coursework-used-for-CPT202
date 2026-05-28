@@ -42,7 +42,6 @@
                 <a id="anchor-customer-bookings" class="hidden" href="/customer-booking.html">Booking Center</a>
                 <a id="anchor-specialist-directory" class="hidden" href="/specialist-directory.html">Specialist Directory</a>
                 <a id="anchor-specialist" class="hidden" href="#specialist-panel">Schedule & Bookings</a>
-                <a id="anchor-admin" class="hidden" href="#admin-panel">Admin Workspace</a>
             </div>
         </div>
 
@@ -75,7 +74,6 @@
                 <a id="side-customer-bookings" class="side-link hidden" href="/customer-booking.html">Booking Center</a>
                 <a id="side-specialist-directory" class="side-link hidden" href="/specialist-directory.html">Specialist Directory</a>
                 <a id="side-specialist" class="side-link hidden" href="#specialist-panel">Schedule & Bookings</a>
-                <a id="side-admin" class="side-link hidden" href="#admin-panel">Admin Workspace</a>
             </div>
 
             <div class="sidebar-card">
@@ -417,102 +415,6 @@
                 <div class="booking-stack" id="specialist-schedule"></div>
             </section>
 
-            <section class="panel hidden" id="admin-panel">
-                <div class="panel-head">
-                    <div>
-                        <p class="eyebrow">Administration</p>
-                        <h2>Admin Workspace</h2>
-                    </div>
-                    <button class="ghost-button" id="refresh-admin-summary" type="button">Refresh Summary</button>
-                </div>
-
-                <div class="stats-grid" id="summary-grid"></div>
-
-                <div class="three-column-panel">
-                    <form class="content-card stack-form" id="category-form">
-                        <h3>Create Category</h3>
-                        <label>
-                            <span>Name</span>
-                            <input name="name" type="text" maxlength="80" required>
-                        </label>
-                        <label>
-                            <span>Description</span>
-                            <textarea name="description" rows="4"></textarea>
-                        </label>
-                        <button type="submit">Save Category</button>
-                    </form>
-
-                    <form class="content-card stack-form" id="admin-user-form">
-                        <h3>Create User Account</h3>
-                        <label>
-                            <span>Username</span>
-                            <input name="username" type="text" required>
-                        </label>
-                        <label>
-                            <span>Password</span>
-                            <input name="password" type="password" minlength="8" maxlength="20" required>
-                            <small class="helper-text">Use 8 to 20 characters.</small>
-                        </label>
-                        <label>
-                            <span>Full Name</span>
-                            <input name="fullName" type="text" required>
-                        </label>
-                        <label>
-                            <span>Email</span>
-                            <input name="email" type="email" required>
-                        </label>
-                        <label>
-                            <span>Phone</span>
-                            <input name="phone" type="text">
-                        </label>
-                        <label>
-                            <span>Role</span>
-                            <select name="role" required>
-                                <option value="CUSTOMER">CUSTOMER</option>
-                                <option value="SPECIALIST">SPECIALIST</option>
-                                <option value="ADMIN">ADMIN</option>
-                            </select>
-                        </label>
-                        <button type="submit">Create Account</button>
-                        <p class="helper-text" id="created-user-tip">Latest created user ID: none</p>
-                    </form>
-
-                    <form class="content-card stack-form" id="admin-specialist-form">
-                        <h3>Create Specialist Profile</h3>
-                        <label>
-                            <span>User ID</span>
-                            <input name="userId" type="number" required>
-                        </label>
-                        <label>
-                            <span>Category</span>
-                            <select name="categoryId" id="admin-category-select" required></select>
-                        </label>
-                        <label>
-                            <span>Professional Title or Certification</span>
-                            <input name="level" type="text" maxlength="120" required>
-                        </label>
-                        <label>
-                            <span>Base Fee</span>
-                            <input name="baseFee" type="number" min="0.01" step="0.01" required>
-                            <input name="feeCurrency" type="hidden" value="USD">
-                        </label>
-                        <label>
-                            <span>Status</span>
-                            <select name="status" required>
-                                <option value="ACTIVE">ACTIVE</option>
-                                <option value="INACTIVE">INACTIVE</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span>Notes</span>
-                            <textarea name="bio" rows="4"></textarea>
-                        </label>
-                        <button type="submit">Create Specialist Profile</button>
-                    </form>
-                </div>
-
-                <div class="category-list" id="category-list"></div>
-            </section>
         </div>
     </div>
 </main>

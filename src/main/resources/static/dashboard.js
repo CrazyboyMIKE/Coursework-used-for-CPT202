@@ -39,17 +39,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         anchorCustomerBookings: document.getElementById("anchor-customer-bookings"),
         anchorSpecialistDirectory: document.getElementById("anchor-specialist-directory"),
         anchorSpecialist: document.getElementById("anchor-specialist"),
-        anchorAdmin: document.getElementById("anchor-admin"),
         sideDirectory: document.getElementById("side-directory"),
         sideCustomerDirectory: document.getElementById("side-customer-directory"),
         sideCustomerBookings: document.getElementById("side-customer-bookings"),
         sideSpecialistDirectory: document.getElementById("side-specialist-directory"),
         sideSpecialist: document.getElementById("side-specialist"),
-        sideAdmin: document.getElementById("side-admin"),
         directoryPanel: document.getElementById("directory"),
         customerPanel: document.getElementById("customer-panel"),
         specialistPanel: document.getElementById("specialist-panel"),
-        adminPanel: document.getElementById("admin-panel"),
         headerFullName: document.getElementById("header-full-name"),
         headerRole: document.getElementById("header-role"),
         profileUsername: document.getElementById("profile-username"),
@@ -65,7 +62,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         dashboardSubtitle: document.getElementById("dashboard-subtitle"),
         specialistResults: document.getElementById("specialist-results"),
         searchCategory: document.getElementById("search-category"),
-        adminCategorySelect: document.getElementById("admin-category-select"),
         bookingForm: document.getElementById("booking-form"),
         bookingSpecialistQuery: document.getElementById("booking-specialist-query"),
         bookingSpecialistSuggestions: document.getElementById("booking-specialist-suggestions"),
@@ -98,10 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         specialistEarnings: document.getElementById("specialist-earnings"),
         specialistEarningsDetail: document.getElementById("specialist-earnings-detail"),
         earningsFilterForm: document.getElementById("earnings-filter-form"),
-        notificationList: document.getElementById("notification-list"),
-        summaryGrid: document.getElementById("summary-grid"),
-        categoryList: document.getElementById("category-list"),
-        createdUserTip: document.getElementById("created-user-tip")
+        notificationList: document.getElementById("notification-list")
     };
 
     app.consumeFlash("toast");
@@ -131,9 +124,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.specialistFilterBar.addEventListener("click", onSpecialistFilterChange);
         elements.specialistConsultationFilterForm.addEventListener("submit", onFilterSpecialistConsultations);
         elements.clearSpecialistConsultationDates.addEventListener("click", clearSpecialistConsultationDates);
-        document.getElementById("category-form").addEventListener("submit", onCreateCategory);
-        document.getElementById("admin-user-form").addEventListener("submit", onCreateUser);
-        document.getElementById("admin-specialist-form").addEventListener("submit", onCreateSpecialistProfile);
         document.getElementById("refresh-customer-bookings").addEventListener("click", refreshCustomerWorkspace);
         document.getElementById("refresh-specialist-schedule").addEventListener("click", refreshSpecialistWorkspace);
         elements.specialistCalendarMode.addEventListener("click", onSpecialistCalendarModeChange);
@@ -144,7 +134,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("refresh-notifications").addEventListener("click", refreshNotifications);
         elements.earningsFilterForm.addEventListener("submit", onFilterEarnings);
         elements.specialistEarnings.addEventListener("click", onEarningsEntryClick);
-        document.getElementById("refresh-admin-summary").addEventListener("click", refreshAdminWorkspace);
         elements.specialistResults.addEventListener("click", onSpecialistAction);
         elements.customerBookings.addEventListener("click", onCustomerBookingAction);
         elements.specialistSchedule.addEventListener("click", onSpecialistBookingAction);
@@ -181,7 +170,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         toggleElementVisibility(isSpecialist, elements.sideSpecialistDirectory);
         toggleElementVisibility(false, elements.customerPanel);
         toggleRoleVisibility(state.user.role === "SPECIALIST", elements.specialistPanel, elements.anchorSpecialist, elements.sideSpecialist);
-        toggleRoleVisibility(state.user.role === "ADMIN", elements.adminPanel, elements.anchorAdmin, elements.sideAdmin);
     }
 
     function startAutoRefresh() {
@@ -213,9 +201,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         if (role === "SPECIALIST") {
             return "You are signed in as a specialist and can review your published timetable, create new slots, and manage booking requests.";
-        }
-        if (role === "ADMIN") {
-            return "You are signed in as an administrator and can manage categories, accounts, specialist profiles, and summary metrics.";
         }
         return "Manage booking workflows, specialist schedules, and category configuration in one place.";
     }
@@ -252,7 +237,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             state.categories = await app.api("/api/categories");
             elements.categoryCount.textContent = String(state.categories.length);
             renderCategoryOptions();
-            renderCategories();
         } catch (error) {
             app.showToast(error.message, "error", "toast");
         }
@@ -265,34 +249,15 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ))
                 .join("");
 
-        const adminOptions = state.categories.map((category) =>
+        const profileOptions = state.categories.map((category) =>
                 `<option value="${category.id}">${app.escapeHtml(category.name)}</option>`
         ).join("");
 
         elements.searchCategory.innerHTML = searchOptions;
-        elements.adminCategorySelect.innerHTML = adminOptions || '<option value="">Create a category first</option>';
-        elements.specialistProfileCategory.innerHTML = adminOptions || '<option value="">No categories available</option>';
+        elements.specialistProfileCategory.innerHTML = profileOptions || '<option value="">No categories available</option>';
         if (state.specialistProfile) {
             elements.specialistProfileCategory.value = String(state.specialistProfile.categoryId);
         }
-    }
-
-    function renderCategories() {
-        if (!state.categories.length) {
-            elements.categoryList.innerHTML = '<div class="empty-state">No categories available yet</div>';
-            return;
-        }
-
-        elements.categoryList.innerHTML = state.categories.map((category) => `
-            <article class="category-chip">
-                <div class="card-head">
-                    <strong>${app.escapeHtml(category.name)}</strong>
-                    <span class="status-pill ${category.active ? "ACTIVE" : "INACTIVE"}">${category.active ? "ACTIVE" : "INACTIVE"}</span>
-                </div>
-                <p>${app.escapeHtml(category.description || "No description available")}</p>
-                <small>ID: ${category.id}</small>
-            </article>
-        `).join("");
     }
 
     async function onSearchSpecialists(event) {
@@ -755,9 +720,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     async function refreshRoleWorkspace() {
         if (state.user.role === "SPECIALIST") {
             await refreshSpecialistWorkspace();
-        }
-        if (state.user.role === "ADMIN") {
-            await refreshAdminWorkspace();
         }
     }
 
@@ -1660,93 +1622,4 @@ document.addEventListener("DOMContentLoaded", async () => {
         return value ? localDateKey(new Date(value)) : todayDateValue();
     }
 
-    async function refreshAdminWorkspace() {
-        if (state.user.role !== "ADMIN") {
-            return;
-        }
-
-        try {
-            const summary = await app.api("/api/reports/summary");
-            renderSummary(summary);
-            await loadCategories();
-        } catch (error) {
-            app.showToast(error.message, "error", "toast");
-        }
-    }
-
-    function renderSummary(summary) {
-        const entries = [
-            ["Total Users", summary.totalUsers],
-            ["Total Specialists", summary.totalSpecialists],
-            ["Available Time Slots", summary.totalAvailableSlots],
-            ["Total Bookings", summary.totalBookings],
-            ["Confirmed Revenue", app.formatCurrency(summary.confirmedRevenue)]
-        ];
-
-        Object.entries(summary.bookingsByStatus || {}).forEach(([status, value]) => {
-            entries.push([`Status ${status}`, value]);
-        });
-
-        elements.summaryGrid.innerHTML = entries.map(([label, value]) => `
-            <article class="stat-card">
-                <span>${app.escapeHtml(label)}</span>
-                <strong>${app.escapeHtml(String(value))}</strong>
-            </article>
-        `).join("");
-    }
-
-    async function onCreateCategory(event) {
-        event.preventDefault();
-        const form = event.currentTarget;
-
-        await app.withFormLoading(form, "Saving...", async () => {
-            await app.api("/api/categories", {
-                method: "POST",
-                body: JSON.stringify(app.formToObject(form))
-            });
-            form.reset();
-            await refreshAdminWorkspace();
-            app.showFormSuccess(form, "Category created successfully.");
-        }).catch((error) => {
-            app.showToast(error.message, "error", "toast");
-        });
-    }
-
-    async function onCreateUser(event) {
-        event.preventDefault();
-        const form = event.currentTarget;
-
-        await app.withFormLoading(form, "Creating...", async () => {
-            const created = await app.api("/api/users", {
-                method: "POST",
-                body: JSON.stringify(app.formToObject(form))
-            });
-            form.reset();
-            elements.createdUserTip.textContent = `Latest created user ID: ${created.id} (${created.username})`;
-            app.showFormSuccess(form, "User account created successfully.");
-        }).catch((error) => {
-            app.showToast(error.message, "error", "toast");
-        });
-    }
-
-    async function onCreateSpecialistProfile(event) {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const payload = app.formToObject(form);
-        payload.userId = Number(payload.userId);
-        payload.categoryId = Number(payload.categoryId);
-        payload.baseFee = Number(payload.baseFee);
-
-        await app.withFormLoading(form, "Creating...", async () => {
-            await app.api("/api/specialists", {
-                method: "POST",
-                body: JSON.stringify(payload)
-            });
-            form.reset();
-            await searchSpecialists();
-            app.showFormSuccess(form, "Specialist profile created successfully.");
-        }).catch((error) => {
-            app.showToast(error.message, "error", "toast");
-        });
-    }
 });

@@ -92,6 +92,16 @@ public class SpecialistController {
         return specialistService.createSpecialist(operator, request);
     }
 
+    @PostMapping("/accounts")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SpecialistDtos.SpecialistResponse createAccount(
+            @RequestHeader(AuthService.AUTH_HEADER) String token,
+            @Valid @RequestBody SpecialistDtos.SpecialistAccountRequest request
+    ) {
+        UserAccount operator = authService.requireUser(token);
+        return specialistService.createSpecialistAccount(operator, request);
+    }
+
     @PutMapping("/{id}")
     public SpecialistDtos.SpecialistResponse update(
             @RequestHeader(AuthService.AUTH_HEADER) String token,

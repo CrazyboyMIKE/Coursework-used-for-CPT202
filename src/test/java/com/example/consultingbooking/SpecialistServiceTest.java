@@ -24,6 +24,7 @@ class SpecialistServiceTest {
     private SpecialistProfileRepository specialistProfileRepository;
     private CategoryService categoryService;
     private AuthService authService;
+    private UserService userService;
     private SpecialistService specialistService;
     private UserAccount specialistUser;
     private SpecialistProfile profile;
@@ -33,10 +34,11 @@ class SpecialistServiceTest {
         specialistProfileRepository = Mockito.mock(SpecialistProfileRepository.class);
         categoryService = Mockito.mock(CategoryService.class);
         authService = Mockito.mock(AuthService.class);
+        userService = Mockito.mock(UserService.class);
         specialistService = new SpecialistService(
                 specialistProfileRepository,
                 Mockito.mock(TimeSlotRepository.class),
-                Mockito.mock(UserService.class),
+                userService,
                 categoryService,
                 authService
         );
@@ -84,5 +86,59 @@ class SpecialistServiceTest {
         Assertions.assertEquals("Licensed Advisor", response.level());
         Assertions.assertEquals(new BigDecimal("155.00"), response.baseFee());
         Assertions.assertEquals(SpecialistStatus.INACTIVE, response.status());
+    }
+
+    @Test
+    void adminCanCreateSpecialistAccountAndProfileInOneCall() {
+        UserAccount admin = new UserAccount();
+        admin.setId(1L);
+        admin.setRole(UserRole.ADMIN);
+
+        UserAccount createdUser = new UserAccount();
+        createdUser.setId(30L);
+        createdUser.setFullName("Created Specialist");
+        createdUser.setRole(UserRole.SPECIALIST);
+
+        ExpertiseCategory category = new ExpertiseCategory();
+        category.setId(2L);
+        category.setName("Legal");
+
+        Mockito.when(userService.createUserEntity(Mockito.eq(admin), Mockito.any()))
+                .thenReturn(createdUser);
+        Mockito.when(categoryService.getEntity(2L)).thenReturn(category);
+        Mockito.when(specialistProfileRepository.save(Mockito.any(SpecialistProfile.class)))
+                .thenAnswer(invocation -> {
+                    SpecialistProfile saved = invocation.getArgument(0);
+                    saved.setId(9L);
+                    return saved;
+                });
+
+        SpecialistDtos.SpecialistResponse response = specialistService.createSpecialistAccount(
+                admin,
+                new SpecialistDtos.SpecialistAccountRequest(
+                        "new-specialist",
+                        "Password123",
+                        "Created Specialist",
+                        "created@example.com",
+                        "18800009999",
+                        2L,
+                        "Trial Consultant",
+                        new BigDecimal("210.00"),
+                        "USD",
+                        SpecialistStatus.ACTIVE,
+                        "Created in one admin action"
+                )
+        );
+
+        Mockito.verify(authService).ensureRole(admin, UserRole.ADMIN);
+        Mockito.verify(userService).createUserEntity(Mockito.eq(admin), Mockito.argThat(request ->
+                request.role() == UserRole.SPECIALIST
+                        && request.username().equals("new-specialist")
+                        && request.email().equals("created@example.com")
+        ));
+        Assertions.assertEquals(9L, response.id());
+        Assertions.assertEquals(30L, response.userId());
+        Assertions.assertEquals("Legal", response.categoryName());
+        Assertions.assertEquals(SpecialistStatus.ACTIVE, response.status());
     }
 }

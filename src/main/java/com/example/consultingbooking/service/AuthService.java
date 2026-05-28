@@ -274,7 +274,8 @@ public class AuthService {
                 .or(() -> userAccountRepository.findByPhone(identifier));
     }
 
-    private void invalidateSessions(Long userId) {
+    @Transactional
+    public void invalidateSessions(Long userId) {
         List<SessionToken> sessions = sessionTokenRepository.findByUserIdAndActiveTrue(userId);
         sessions.forEach(session -> session.setActive(false));
         sessionTokenRepository.saveAll(sessions);

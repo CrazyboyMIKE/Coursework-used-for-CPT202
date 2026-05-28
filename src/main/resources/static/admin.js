@@ -42,6 +42,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         summaryGrid: document.getElementById("summary-grid"),
         userList: document.getElementById("user-list"),
         userForm: document.getElementById("admin-user-edit-form"),
+        userPasswordForm: document.getElementById("admin-user-password-form"),
         specialistList: document.getElementById("specialist-list"),
         createSpecialistForm: document.getElementById("admin-specialist-create-form"),
         specialistForm: document.getElementById("admin-specialist-edit-form"),
@@ -91,6 +92,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         elements.categoryPagination?.addEventListener("click", onPaginationAction);
         elements.adminSearchForms.forEach((form) => form.addEventListener("submit", onAdminSearch));
         elements.userForm?.addEventListener("submit", onSaveUser);
+        elements.userPasswordForm?.addEventListener("submit", onResetUserPassword);
         elements.createSpecialistForm?.addEventListener("submit", onCreateSpecialist);
         elements.specialistForm?.addEventListener("submit", onSaveSpecialist);
         elements.categoryForm?.addEventListener("submit", onSaveCategory);
@@ -435,9 +437,17 @@ document.addEventListener("DOMContentLoaded", async () => {
                 field.disabled = disabled;
             }
         });
+        if (elements.userPasswordForm) {
+            Array.from(elements.userPasswordForm.elements).forEach((field) => {
+                if (field.name !== "") {
+                    field.disabled = disabled;
+                }
+            });
+        }
 
         if (!user) {
             elements.userForm.reset();
+            elements.userPasswordForm?.reset();
             return;
         }
 
@@ -448,6 +458,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("edit-user-phone").value = user.phone || "";
         document.getElementById("edit-user-role").value = user.role;
         document.getElementById("edit-user-active").value = String(user.active);
+        const resetUserId = document.getElementById("reset-password-user-id");
+        if (resetUserId) {
+            resetUserId.value = String(user.id);
+        }
+        elements.userPasswordForm?.reset();
+        if (resetUserId) {
+            resetUserId.value = String(user.id);
+        }
     }
 
     async function loadSpecialists() {
@@ -753,18 +771,58 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
+    async function onResetUserPassword(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const userId = Number(document.getElementById("edit-user-id").value);
+        const selectedUser = state.users.find((user) => user.id === userId);
+        const payload = app.formToObject(form);
+
+        app.clearFormErrors(form);
+        if (!userId || !selectedUser) {
+            app.setFormError(form, "Select a user before resetting a password.");
+            return;
+        }
+        if (payload.newPassword !== payload.confirmPassword) {
+            app.setFieldError(form, "confirmPassword", "The password confirmation does not match.");
+            app.setFormError(form, "Please correct the highlighted fields and try again.");
+            return;
+        }
+
+        const confirmation = await app.confirmAction({
+            title: "Reset user password",
+            message: `Reset the password for ${selectedUser.fullName}? The user's existing sessions will be closed.`,
+            confirmLabel: "Reset Password",
+            danger: true
+        });
+        if (!confirmation.confirmed) {
+            return;
+        }
+
+        await app.withFormLoading(form, "Resetting...", async () => {
+            await app.api(`/api/users/${userId}/password`, {
+                method: "POST",
+                body: JSON.stringify({ newPassword: payload.newPassword })
+            });
+            form.reset();
+            document.getElementById("reset-password-user-id").value = String(userId);
+            app.showFormSuccess(form, "Password reset successfully. The user must sign in again.");
+        }).catch((error) => {
+            app.renderFormErrors(form, error, "Unable to reset the password. Please review the form.");
+        });
+    }
+
     async function onCreateSpecialist(event) {
         event.preventDefault();
         const form = event.currentTarget;
         const payload = app.formToObject(form);
-        payload.userId = Number(payload.userId);
         payload.categoryId = Number(payload.categoryId);
         payload.baseFee = Number(payload.baseFee);
 
         app.clearFormErrors(form);
 
         await app.withFormLoading(form, "Creating...", async () => {
-            const created = await app.api("/api/specialists", {
+            const created = await app.api("/api/specialists/accounts", {
                 method: "POST",
                 body: JSON.stringify(payload)
             });

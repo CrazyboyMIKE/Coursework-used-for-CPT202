@@ -24,6 +24,21 @@ public final class SpecialistDtos {
     ) {
     }
 
+    public record SpecialistAccountRequest(
+            @NotBlank @Size(max = 50) String username,
+            @NotBlank @Size(min = 8, max = 20, message = "Password must be between 8 and 20 characters") String password,
+            @NotBlank @Size(max = 100) String fullName,
+            @NotBlank @jakarta.validation.constraints.Email @Size(max = 120) String email,
+            @Size(max = 30) String phone,
+            @NotNull(message = "Category is required") @Positive Long categoryId,
+            @NotBlank(message = "Professional title or certification is required") @Size(max = 120) String level,
+            @NotNull(message = "Base fee is required") @DecimalMin(value = "0.01", message = "Base fee must be greater than zero") BigDecimal baseFee,
+            String feeCurrency,
+            @NotNull(message = "Status is required") SpecialistStatus status,
+            @Size(max = 500) String bio
+    ) {
+    }
+
     public record SpecialistUpdateRequest(
             @NotNull(message = "Category is required") @Positive Long categoryId,
             @NotBlank(message = "Professional title or certification is required") @Size(max = 120) String level,

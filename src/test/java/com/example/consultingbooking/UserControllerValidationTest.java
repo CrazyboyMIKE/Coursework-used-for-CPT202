@@ -54,4 +54,22 @@ class UserControllerValidationTest {
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.fieldErrors.email").exists());
     }
+
+    @Test
+    void adminResetPasswordShortPasswordReturnsValidationError() throws Exception {
+        Mockito.when(authService.requireUser("token")).thenReturn(new UserAccount());
+
+        mockMvc.perform(post("/api/users/5/password")
+                        .header(AuthService.AUTH_HEADER, "token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "newPassword": "short"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.newPassword").exists());
+    }
 }
