@@ -266,6 +266,7 @@ Base path:
 - `PUT /api/users/me`
 - `PUT /api/users/{id}`
 - `POST /api/users`
+- `POST /api/users/{id}/password`
 
 ### Categories
 
@@ -280,7 +281,10 @@ Base path:
 - `GET /api/specialists/manage?page=&size=&keyword=`
 - `GET /api/specialists/me`
 - `POST /api/specialists`
+- `POST /api/specialists/accounts`
 - `PUT /api/specialists/{id}`
+
+`POST /api/specialists/accounts` creates both a `SPECIALIST` user account and its specialist profile in one administrator action.
 
 Search filters supported by `GET /api/specialists`:
 

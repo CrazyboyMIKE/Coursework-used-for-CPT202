@@ -81,4 +81,15 @@ public class UserController {
         return userService.createUser(operator, request);
     }
 
+    @PostMapping("/{id}/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(
+            @RequestHeader(AuthService.AUTH_HEADER) String token,
+            @PathVariable Long id,
+            @Valid @RequestBody UserDtos.AdminResetPasswordRequest request
+    ) {
+        UserAccount operator = authService.requireUser(token);
+        userService.resetPassword(operator, id, request);
+    }
+
 }

@@ -40,6 +40,11 @@ public class UserService {
 
     @Transactional
     public UserDtos.UserResponse createUser(UserAccount operator, UserDtos.CreateUserRequest request) {
+        return mapUser(createUserEntity(operator, request));
+    }
+
+    @Transactional
+    public UserAccount createUserEntity(UserAccount operator, UserDtos.CreateUserRequest request) {
         authService.ensureRole(operator, UserRole.ADMIN);
 
         if (userAccountRepository.existsByUsernameIgnoreCase(request.username().trim())) {
@@ -58,7 +63,7 @@ public class UserService {
         user.setPhone(TextNormalizer.cleanOptional(request.phone()));
         user.setRole(request.role());
         user.setActive(true);
-        return mapUser(userAccountRepository.save(user));
+        return userAccountRepository.save(user);
     }
 
     @Transactional(readOnly = true)
@@ -120,6 +125,16 @@ public class UserService {
         currentUser.setEmail(email);
         currentUser.setPhone(TextNormalizer.cleanOptional(request.phone()));
         return mapUser(userAccountRepository.save(currentUser));
+    }
+
+    @Transactional
+    public void resetPassword(UserAccount operator, Long userId, UserDtos.AdminResetPasswordRequest request) {
+        authService.ensureRole(operator, UserRole.ADMIN);
+
+        UserAccount user = getEntity(userId);
+        user.setPassword(PasswordHasher.hash(request.newPassword()));
+        userAccountRepository.save(user);
+        authService.invalidateSessions(userId);
     }
 
     public UserAccount getEntity(Long userId) {

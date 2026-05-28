@@ -2,6 +2,7 @@ package com.example.consultingbooking.service;
 
 import com.example.consultingbooking.dto.PageDtos;
 import com.example.consultingbooking.dto.SpecialistDtos;
+import com.example.consultingbooking.dto.UserDtos;
 import com.example.consultingbooking.entity.SlotStatus;
 import com.example.consultingbooking.entity.SpecialistProfile;
 import com.example.consultingbooking.entity.SpecialistStatus;
@@ -58,6 +59,36 @@ public class SpecialistService {
                 .ifPresent(profile -> {
                     throw new BusinessException(HttpStatus.BAD_REQUEST, "Specialist profile already exists");
                 });
+
+        SpecialistProfile profile = new SpecialistProfile();
+        profile.setUser(specialistUser);
+        profile.setCategory(categoryService.getEntity(request.categoryId()));
+        profile.setLevel(normalizeLevel(request.level()));
+        profile.setBaseFee(request.baseFee());
+        profile.setFeeCurrency(BusinessConstants.DEFAULT_CURRENCY);
+        profile.setStatus(request.status());
+        profile.setBio(TextNormalizer.cleanOptional(request.bio()));
+        return mapSpecialist(specialistProfileRepository.save(profile));
+    }
+
+    @Transactional
+    public SpecialistDtos.SpecialistResponse createSpecialistAccount(
+            UserAccount operator,
+            SpecialistDtos.SpecialistAccountRequest request
+    ) {
+        authService.ensureRole(operator, UserRole.ADMIN);
+
+        UserAccount specialistUser = userService.createUserEntity(
+                operator,
+                new UserDtos.CreateUserRequest(
+                        request.username(),
+                        request.password(),
+                        request.fullName(),
+                        request.email(),
+                        request.phone(),
+                        UserRole.SPECIALIST
+                )
+        );
 
         SpecialistProfile profile = new SpecialistProfile();
         profile.setUser(specialistUser);

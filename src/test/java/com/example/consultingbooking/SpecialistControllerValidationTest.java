@@ -71,6 +71,34 @@ class SpecialistControllerValidationTest {
     }
 
     @Test
+    void createSpecialistAccountWithInvalidEmailReturnsValidationError() throws Exception {
+        Mockito.when(authService.requireUser("token")).thenReturn(new UserAccount());
+
+        mockMvc.perform(post("/api/specialists/accounts")
+                        .header(AuthService.AUTH_HEADER, "token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "admin-specialist",
+                                  "password": "password123",
+                                  "fullName": "Admin Specialist",
+                                  "email": "bad-email",
+                                  "phone": "18800000000",
+                                  "categoryId": 1,
+                                  "level": "Certified Advisor",
+                                  "baseFee": 120.00,
+                                  "feeCurrency": "USD",
+                                  "status": "ACTIVE",
+                                  "bio": "Experienced advisor"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.fieldErrors.email").exists());
+    }
+
+    @Test
     void updateOwnProfileDoesNotAcceptMissingCategory() throws Exception {
         Mockito.when(authService.requireUser("token")).thenReturn(new UserAccount());
 

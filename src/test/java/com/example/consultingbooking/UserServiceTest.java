@@ -6,6 +6,7 @@ import com.example.consultingbooking.entity.UserRole;
 import com.example.consultingbooking.exception.BusinessException;
 import com.example.consultingbooking.repository.SpecialistProfileRepository;
 import com.example.consultingbooking.repository.UserAccountRepository;
+import com.example.consultingbooking.security.PasswordHasher;
 import com.example.consultingbooking.service.AuthService;
 import com.example.consultingbooking.service.UserService;
 import java.util.Optional;
@@ -17,15 +18,17 @@ import org.mockito.Mockito;
 class UserServiceTest {
 
     private UserAccountRepository userAccountRepository;
+    private AuthService authService;
     private UserService userService;
 
     @BeforeEach
     void setUp() {
         userAccountRepository = Mockito.mock(UserAccountRepository.class);
+        authService = Mockito.mock(AuthService.class);
         userService = new UserService(
                 userAccountRepository,
                 Mockito.mock(SpecialistProfileRepository.class),
-                Mockito.mock(AuthService.class)
+                authService
         );
     }
 
@@ -65,5 +68,27 @@ class UserServiceTest {
 
         Assertions.assertEquals("18800001111", response.phone());
         Mockito.verify(userAccountRepository).save(current);
+    }
+
+    @Test
+    void adminResetPasswordHashesPasswordAndInvalidatesSessions() {
+        UserAccount admin = new UserAccount();
+        admin.setId(1L);
+        admin.setRole(UserRole.ADMIN);
+
+        UserAccount target = new UserAccount();
+        target.setId(5L);
+        target.setPassword(PasswordHasher.hash("OldPass123"));
+
+        Mockito.when(userAccountRepository.findById(5L)).thenReturn(Optional.of(target));
+        Mockito.when(userAccountRepository.save(target)).thenReturn(target);
+
+        userService.resetPassword(admin, 5L, new UserDtos.AdminResetPasswordRequest("NewPass123"));
+
+        Mockito.verify(authService).ensureRole(admin, UserRole.ADMIN);
+        Mockito.verify(userAccountRepository).save(target);
+        Mockito.verify(authService).invalidateSessions(5L);
+        Assertions.assertTrue(PasswordHasher.matches("NewPass123", target.getPassword()));
+        Assertions.assertFalse(PasswordHasher.matches("OldPass123", target.getPassword()));
     }
 }

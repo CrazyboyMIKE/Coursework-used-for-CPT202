@@ -101,6 +101,27 @@
                 </label>
                 <button type="submit">Save User Changes</button>
             </form>
+
+            <form id="admin-user-password-form" class="content-card stack-form editor-card">
+                <h3>Reset Selected User Password</h3>
+                <div class="form-error hidden" data-form-error></div>
+                <label>
+                    <span>Selected User ID</span>
+                    <input id="reset-password-user-id" type="number" readonly>
+                </label>
+                <label>
+                    <span>New Password</span>
+                    <input id="reset-password-new" name="newPassword" type="password" minlength="8" maxlength="20" autocomplete="new-password" required>
+                    <small class="helper-text">Use 8 to 20 characters. Existing sessions for this user will be closed.</small>
+                    <small class="field-error" data-error-for="newPassword"></small>
+                </label>
+                <label>
+                    <span>Confirm New Password</span>
+                    <input id="reset-password-confirm" name="confirmPassword" type="password" minlength="8" maxlength="20" autocomplete="new-password" required>
+                    <small class="field-error" data-error-for="confirmPassword"></small>
+                </label>
+                <button type="submit">Reset Password</button>
+            </form>
         </div>
     </section>
 </main>

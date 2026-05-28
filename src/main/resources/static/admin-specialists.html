@@ -48,12 +48,33 @@
 
         <div class="two-column-panel admin-create-panel">
             <form id="admin-specialist-create-form" class="content-card stack-form editor-card">
-                <h3>Create Specialist Profile</h3>
+                <h3>Create Specialist Account</h3>
                 <div class="form-error hidden" data-form-error></div>
                 <label>
-                    <span>User ID</span>
-                    <input id="create-specialist-user-id" name="userId" type="number" required>
-                    <small class="field-error" data-error-for="userId"></small>
+                    <span>Username</span>
+                    <input id="create-specialist-username" name="username" type="text" maxlength="50" required>
+                    <small class="field-error" data-error-for="username"></small>
+                </label>
+                <label>
+                    <span>Initial Password</span>
+                    <input id="create-specialist-password" name="password" type="password" minlength="8" maxlength="20" required>
+                    <small class="helper-text">Use 8 to 20 characters.</small>
+                    <small class="field-error" data-error-for="password"></small>
+                </label>
+                <label>
+                    <span>Full Name</span>
+                    <input id="create-specialist-full-name" name="fullName" type="text" maxlength="100" required>
+                    <small class="field-error" data-error-for="fullName"></small>
+                </label>
+                <label>
+                    <span>Email</span>
+                    <input id="create-specialist-email" name="email" type="email" maxlength="120" required>
+                    <small class="field-error" data-error-for="email"></small>
+                </label>
+                <label>
+                    <span>Phone</span>
+                    <input id="create-specialist-phone" name="phone" type="text" maxlength="30">
+                    <small class="field-error" data-error-for="phone"></small>
                 </label>
                 <label>
                     <span>Category</span>
@@ -91,9 +112,9 @@
             <div class="content-card">
                 <h3>Creation Guidance</h3>
                 <ul class="story-list compact-list">
-                    <li>Create or identify a user account with the `SPECIALIST` role first.</li>
-                    <li>Choose an active category so the profile appears in the search directory.</li>
-                    <li>New specialist profiles are added to the management list immediately after creation.</li>
+                    <li>This form creates the login account and public specialist profile together.</li>
+                    <li>Username, email, and phone must not already be used by another account.</li>
+                    <li>New specialists are added to the management list immediately after creation.</li>
                 </ul>
             </div>
         </div>
